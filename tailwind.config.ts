@@ -49,9 +49,9 @@ export default {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "var(--radius-sm)",
+        lg: "var(--radius-lg)",
+        md: "calc(var(--radius-lg) - 2px)",
+        sm: "calc(var(--radius-lg) - 4px)",
       },
       backgroundImage: {
         'gradient-hero': 'var(--gradient-hero)',

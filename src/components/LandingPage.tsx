@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { 
   MessageCircle, 
   Clock, 
@@ -40,10 +41,10 @@ const LandingPage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button size="lg" className="text-lg px-8 py-6 shadow-glow transition-smooth hover:shadow-card-hover">
+              <Button size="lg" className="text-lg px-8 py-6 rounded-lg shadow-glow transition-smooth hover:shadow-card-hover">
                 Create Your Workspace for Free
               </Button>
-              <Button variant="ghost" size="lg" className="text-lg px-8 py-6">
+              <Button variant="ghost" size="lg" className="text-lg px-8 py-6 rounded-lg">
                 Request a Demo
               </Button>
             </div>
@@ -87,7 +88,7 @@ const LandingPage = () => {
                 description: "A flood of non-urgent messages pulls your attention away from critical tasks. The cost of context-switching is draining your team's energy."
               }
             ].map((problem, index) => (
-              <Card key={index} className="p-6 bg-gradient-card border-border rounded-sm hover:shadow-card-hover transition-smooth">
+              <Card key={index} className="p-6 bg-transparent border-border rounded-lg hover:shadow-card-hover transition-smooth">
                 <problem.icon className="w-12 h-12 text-primary mb-4" />
                 <h3 className="text-xl font-semibold mb-3">{problem.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{problem.description}</p>
@@ -133,23 +134,23 @@ const LandingPage = () => {
             ].map((feature, index) => (
               <div key={index} className={`flex flex-col ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-12`}>
                 <div className="flex-1">
-                  <Card className="p-8 bg-gradient-card border-border rounded-sm">
+                  <Card className="p-8 bg-transparent border-border rounded-lg">
                     <feature.icon className="w-16 h-16 text-primary mb-6" />
                     <h3 className="text-2xl font-bold mb-4">{feature.title}</h3>
                     <div className="space-y-4">
                       <div>
-                        <h4 className="text-lg font-semibold text-destructive mb-2">Pain it Kills:</h4>
+                        <Badge variant="problem" className="mb-2">Pain it Kills</Badge>
                         <p className="text-muted-foreground">{feature.problem}</p>
                       </div>
                       <div>
-                        <h4 className="text-lg font-semibold text-primary mb-2">Solution:</h4>
+                        <Badge variant="solution" className="mb-2">Solution</Badge>
                         <p className="leading-relaxed">{feature.solution}</p>
                       </div>
                     </div>
                   </Card>
                 </div>
                 <div className="flex-1">
-                  <div className="w-full h-64 bg-muted rounded-sm border border-border flex items-center justify-center">
+                  <div className="w-full h-64 bg-transparent rounded-lg border border-border flex items-center justify-center">
                     <feature.icon className="w-24 h-24 text-muted-foreground" />
                   </div>
                 </div>
@@ -193,16 +194,16 @@ const LandingPage = () => {
                 solution: "Keep important information front-and-center by pinning up to three messages to the top of any conversation. Easily search and paginate through your message history to find exactly what you need."
               }
             ].map((feature, index) => (
-              <Card key={index} className="p-8 bg-gradient-card border-border rounded-sm hover:shadow-card-hover transition-smooth">
+              <Card key={index} className="p-8 bg-transparent border-border rounded-lg hover:shadow-card-hover transition-smooth">
                 <feature.icon className="w-16 h-16 text-primary mb-6" />
                 <h3 className="text-2xl font-bold mb-6">{feature.title}</h3>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-lg font-semibold text-destructive mb-2">Pain it Kills:</h4>
+                    <Badge variant="problem" className="mb-2">Pain it Kills</Badge>
                     <p className="text-muted-foreground text-sm leading-relaxed">{feature.problem}</p>
                   </div>
                   <div>
-                    <h4 className="text-lg font-semibold text-primary mb-2">Solution:</h4>
+                    <Badge variant="solution" className="mb-2">Solution</Badge>
                     <p className="text-sm leading-relaxed">{feature.solution}</p>
                   </div>
                 </div>
@@ -246,16 +247,16 @@ const LandingPage = () => {
                 solution: "From rate limiting and environment secrets to daily backups and SSL encryption, we handle the security so you can focus on your work. Your conversations and data are protected with enterprise-grade security standards."
               }
             ].map((feature, index) => (
-              <Card key={index} className="p-8 bg-gradient-card border-border rounded-sm hover:shadow-card-hover transition-smooth">
+              <Card key={index} className="p-8 bg-transparent border-border rounded-lg hover:shadow-card-hover transition-smooth">
                 <feature.icon className="w-16 h-16 text-primary mb-6" />
                 <h3 className="text-2xl font-bold mb-6">{feature.title}</h3>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-lg font-semibold text-destructive mb-2">Pain it Kills:</h4>
+                    <Badge variant="problem" className="mb-2">Pain it Kills</Badge>
                     <p className="text-muted-foreground text-sm leading-relaxed">{feature.problem}</p>
                   </div>
                   <div>
-                    <h4 className="text-lg font-semibold text-primary mb-2">Solution:</h4>
+                    <Badge variant="solution" className="mb-2">Solution</Badge>
                     <p className="text-sm leading-relaxed">{feature.solution}</p>
                   </div>
                 </div>
@@ -278,7 +279,7 @@ const LandingPage = () => {
               Sign up in 60 seconds.
             </p>
             
-            <Button size="lg" className="text-lg px-12 py-6 shadow-glow transition-smooth hover:shadow-card-hover">
+            <Button size="lg" className="text-lg px-12 py-6 rounded-lg shadow-glow transition-smooth hover:shadow-card-hover">
               Start Your Free Trial Today
             </Button>
           </div>
