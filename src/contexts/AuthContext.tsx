@@ -57,16 +57,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log('Starting signup process...')
       
-      // First, let's test if we can connect to Supabase
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-      console.log('Session check before signup:', { sessionData, sessionError })
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           // Add email redirect URL for confirmation
-          emailRedirectTo: `${window.location.origin}/login`
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       })
       
@@ -77,8 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           message: error.message,
           status: error.status,
           code: (error as any)?.code,
-          name: error.name,
-          stack: error.stack
+          name: error.name
         })
       }
       

@@ -13,18 +13,15 @@ console.log('Key (first 20 chars):', supabaseAnonKey?.substring(0, 20) + '...')
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    debug: true,
+    // Enable email confirmation for proper verification flow
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
-    // Add debug mode to get more detailed error information
-    debug: true,
-    // Disable email confirmation for testing
-    flowType: 'implicit'
+    detectSessionInUrl: true
   },
-  // Add global configuration for better error handling
   global: {
     headers: {
-      'X-Client-Info': 'mindful-comm-app'
+      'X-Client-Info': 'mindful-comm@1.0.0'
     }
   }
 })
