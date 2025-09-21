@@ -109,7 +109,7 @@ const SubdomainChecker: React.FC<SubdomainCheckerProps> = ({
             placeholder="your-company"
           />
           <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-            .mindfulcomm.com
+            .uproom.com
           </span>
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2 mr-24">
             {getStatusIcon()}

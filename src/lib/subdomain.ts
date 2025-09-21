@@ -140,7 +140,7 @@ export class SubdomainService {
    */
   static getSubdomainUrl(subdomain: string, protocol: string = 'https'): string {
     const domain = process.env.NODE_ENV === 'production' 
-      ? process.env.VITE_DOMAIN || 'mindfulcomm.com'
+      ? process.env.VITE_DOMAIN || 'uproom.com'
       : 'localhost:8080'
     
     return `${protocol}://${subdomain}.${domain}`

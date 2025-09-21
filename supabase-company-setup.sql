@@ -1,4 +1,4 @@
--- Company Workspace Setup for Mindful Communication Platform
+-- Company Workspace Setup for Uproom Platform
 -- This script creates the necessary tables for company workspaces and user management
 
 -- 1. Create companies table

@@ -21,7 +21,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      'X-Client-Info': 'mindful-comm@1.0.0'
+      'X-Client-Info': 'uproom@1.0.0'
     }
   }
 })
