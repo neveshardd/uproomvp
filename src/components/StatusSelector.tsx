@@ -3,10 +3,19 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Badge } from './ui/badge'
 import { Alert, AlertDescription } from './ui/alert'
+import { Switch } from './ui/switch'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { 
   Clock, 
   Coffee, 
@@ -22,7 +31,8 @@ import {
   ChevronDown,
   Circle,
   AlertTriangle,
-  Minus
+  Minus,
+  Check
 } from 'lucide-react'
 import { realtimeService, UserStatus } from '../lib/realtime'
 import { supabase } from '@/lib/supabase'
@@ -33,6 +43,7 @@ interface StatusOption {
   label: string
   icon: React.ReactNode
   color: string
+  bgColor: string
   description: string
   defaultMessage: string
 }
@@ -47,15 +58,17 @@ const statusOptions: StatusOption[] = [
     type: 'available',
     label: 'Available',
     icon: <CheckCircle className="h-4 w-4" />,
-    color: 'bg-green-500',
-    description: 'Ready to work and collaborate',
+    color: 'text-green-600',
+    bgColor: 'bg-green-500',
+    description: 'Ready to work, minimal interruptions',
     defaultMessage: 'Available for work'
   },
   {
     type: 'focus',
     label: 'Focus',
     icon: <Zap className="h-4 w-4" />,
-    color: 'bg-purple-500',
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-500',
     description: 'Focused work, minimal interruptions',
     defaultMessage: 'In deep work mode'
   },
@@ -63,7 +76,8 @@ const statusOptions: StatusOption[] = [
     type: 'meeting',
     label: 'Meeting',
     icon: <Calendar className="h-4 w-4" />,
-    color: 'bg-blue-500',
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-500',
     description: 'Currently in a meeting',
     defaultMessage: 'In a meeting'
   },
@@ -71,7 +85,8 @@ const statusOptions: StatusOption[] = [
     type: 'away',
     label: 'Away',
     icon: <Clock className="h-4 w-4" />,
-    color: 'bg-yellow-500',
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-500',
     description: 'Temporarily away from desk',
     defaultMessage: 'Away from desk'
   },
@@ -79,7 +94,8 @@ const statusOptions: StatusOption[] = [
     type: 'break',
     label: 'Break',
     icon: <Coffee className="h-4 w-4" />,
-    color: 'bg-orange-500',
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-500',
     description: 'Taking a short break',
     defaultMessage: 'Taking a break'
   },
@@ -87,7 +103,8 @@ const statusOptions: StatusOption[] = [
     type: 'emergency',
     label: 'Emergency',
     icon: <AlertTriangle className="h-4 w-4" />,
-    color: 'bg-red-500',
+    color: 'text-red-600',
+    bgColor: 'bg-red-500',
     description: 'Emergency situation - urgent attention needed',
     defaultMessage: 'Emergency - please contact immediately'
   },
@@ -95,7 +112,8 @@ const statusOptions: StatusOption[] = [
     type: 'offline',
     label: 'Offline',
     icon: <Moon className="h-4 w-4" />,
-    color: 'bg-gray-400',
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-400',
     description: 'Not available, finished for today',
     defaultMessage: 'Finished for today'
   }
@@ -113,7 +131,7 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
   className = ""
 }) => {
   const { user } = useAuth()
-  const [selectedStatus, setSelectedStatus] = useState<string>('')
+  const [selectedStatus, setSelectedStatus] = useState<string>('available')
   const [customMessage, setCustomMessage] = useState('')
   const [autoExpiry, setAutoExpiry] = useState('')
   const [companies, setCompanies] = useState<Company[]>([])
@@ -122,6 +140,8 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [currentStatus, setCurrentStatus] = useState<any>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isToggleOn, setIsToggleOn] = useState(true)
 
   useEffect(() => {
     if (user) {
@@ -154,7 +174,6 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
 
       setCompanies(companiesData)
 
-      // Auto-select first company if no companyId provided
       if (!companyId && companiesData.length > 0) {
         setSelectedCompany(companiesData[0].id)
       }
@@ -184,6 +203,7 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
         setCurrentStatus(data)
         setSelectedStatus(data.status_type)
         setCustomMessage(data.status_message || '')
+        setIsToggleOn(data.status_type !== 'offline')
       }
     } catch (err: any) {
       console.error('Error fetching current status:', err)
@@ -209,24 +229,22 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     setSuccess('')
 
     try {
-      // Use realtime service to update status
       await realtimeService.updateUserStatus(
         selectedStatus as UserStatus['status'], 
         customMessage || undefined
       )
 
       setSuccess('Status updated successfully!')
-      
-      // Refresh current status
       await fetchCurrentStatus()
       
-      // Call callback if provided
       if (onStatusUpdate) {
         onStatusUpdate()
       }
 
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000)
+      setTimeout(() => {
+        setSuccess('')
+        setIsOpen(false)
+      }, 1500)
     } catch (err: any) {
       setError(err.message || 'Failed to update status')
     } finally {
@@ -238,147 +256,137 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     return statusOptions.find(opt => opt.type === type)
   }
 
-  const currentStatusOption = currentStatus ? getStatusOption(currentStatus.status_type) : null
+  const currentStatusOption = currentStatus ? getStatusOption(currentStatus.status_type) : getStatusOption('available')
+  const displayMessage = currentStatus?.status_message || currentStatusOption?.defaultMessage || 'Available for work'
+  const truncatedMessage = displayMessage.length > 35 ? displayMessage.substring(0, 35) + '...' : displayMessage
 
   return (
-    <Card className={className}>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <Briefcase className="h-5 w-5 mr-2" />
-          Status Manager
-        </CardTitle>
-        <CardDescription>
-          Set your availability status for your team
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription>{success}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* Current Status Display */}
-        {currentStatus && currentStatusOption && (
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <Label className="text-sm font-medium text-gray-700 mb-2 block">Current Status</Label>
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${currentStatusOption.color}`}></div>
-              <div className="flex-1">
-                <div className="flex items-center space-x-2">
-                  {currentStatusOption.icon}
-                  <span className="font-medium">{currentStatusOption.label}</span>
-                </div>
-                {currentStatus.status_message && (
-                  <p className="text-sm text-gray-600 mt-1">{currentStatus.status_message}</p>
-                )}
-              </div>
-              {currentStatus.expires_at && (
-                <Badge variant="outline" className="text-xs">
-                  Expires: {new Date(currentStatus.expires_at).toLocaleString()}
-                </Badge>
-              )}
-            </div>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <div className={`w-full p-3 border rounded-lg cursor-pointer hover:bg-neutral-700/50 transition-colors ${className}`}>
+          {/* First line: Description text */}
+          <div className="text-sm text-white mb-2">
+            {truncatedMessage}
           </div>
-        )}
-
-        {/* Company Selection */}
-        {companies.length > 1 && (
-          <div className="space-y-2">
-            <Label htmlFor="company">Workspace</Label>
-            <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select workspace" />
-              </SelectTrigger>
-              <SelectContent>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          
+          {/* Second line: Status badge and toggle */}
+          <div className="flex items-center justify-between">
+            <Badge 
+              variant="secondary" 
+              className={`${currentStatusOption?.color} border-0 px-2 py-1 rounded-sm`}
+              style={{
+                backgroundColor: currentStatusOption?.type === 'available' ? 'rgb(22 101 52 / 0.3)' :
+                                currentStatusOption?.type === 'focus' ? 'rgb(107 33 168 / 0.3)' :
+                                currentStatusOption?.type === 'meeting' ? 'rgb(37 99 235 / 0.3)' :
+                                currentStatusOption?.type === 'away' ? 'rgb(202 138 4 / 0.3)' :
+                                currentStatusOption?.type === 'break' ? 'rgb(234 88 12 / 0.3)' :
+                                currentStatusOption?.type === 'emergency' ? 'rgb(220 38 38 / 0.3)' :
+                                currentStatusOption?.type === 'offline' ? 'rgb(75 85 99 / 0.3)' :
+                                'rgb(22 101 52 / 0.3)'
+              }}
+            >
+              {currentStatusOption?.label}
+            </Badge>
+            
+            <Switch 
+              checked={isToggleOn} 
+              onCheckedChange={setIsToggleOn}
+              className="data-[state=checked]:bg-none [&_[data-state=checked]]:bg-white [&_[data-state=unchecked]]:bg-white"
+              style={{
+                backgroundColor: isToggleOn ? (
+                  currentStatusOption?.type === 'available' ? 'rgb(22 101 52)' :
+                  currentStatusOption?.type === 'focus' ? 'rgb(107 33 168)' :
+                  currentStatusOption?.type === 'meeting' ? 'rgb(37 99 235)' :
+                  currentStatusOption?.type === 'away' ? 'rgb(202 138 4)' :
+                  currentStatusOption?.type === 'break' ? 'rgb(234 88 12)' :
+                  currentStatusOption?.type === 'emergency' ? 'rgb(220 38 38)' :
+                  currentStatusOption?.type === 'offline' ? 'rgb(75 85 99)' :
+                  'rgb(22 101 52)'
+                ) : undefined
+              }}
+            />
           </div>
-        )}
+        </div>
+      </DropdownMenuTrigger>
 
-        {/* Status Selection */}
-        <div className="space-y-3">
-          <Label>Select Status</Label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <DropdownMenuContent className="w-[267px] p-0" align="start" side="top">
+        <div className="p-4">
+
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {success && (
+            <Alert className="mb-4">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* Status options */}
+          <div className="space-y-1 mb-2">
             {statusOptions.map((option) => (
-              <Button
+              <div
                 key={option.type}
-                variant={selectedStatus === option.type ? "default" : "outline"}
-                className="justify-start h-auto p-3"
+                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors ${
+                  selectedStatus === option.type 
+                    ? 'bg-neutral-700 text-white' 
+                    : 'hover:bg-neutral-700/50'
+                }`}
                 onClick={() => handleStatusChange(option.type)}
               >
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${option.color}`}></div>
-                  <div className="text-left">
-                    <div className="flex items-center space-x-2">
-                      {option.icon}
-                      <span className="font-medium">{option.label}</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{option.description}</p>
-                  </div>
+                <div className="flex gap-3 items-center">
+                  <div className={`w-2 h-2 rounded-full ${option.bgColor}`}></div>
+                  <span className="text-sm font-medium">{option.label}</span>
                 </div>
-              </Button>
+                {selectedStatus === option.type && (
+                  <Check className="h-4 w-4" />
+                )}
+              </div>
             ))}
           </div>
-        </div>
 
-        {/* Custom Message */}
-        <div className="space-y-2">
-          <Label htmlFor="message">Status Message</Label>
-          <Textarea
-            id="message"
-            placeholder="Add a custom message (optional)"
-            value={customMessage}
-            onChange={(e) => setCustomMessage(e.target.value)}
-            className="min-h-[80px]"
-          />
-        </div>
+          {/* Text input */}
+          <div className="mb-2">
+            <Textarea
+              id="message"
+              placeholder="What are you working on?"
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+              className="min-h-[80px] resize-none w-full rounded-md"
+            />
+          </div>
 
-        {/* Auto Expiry */}
-        <div className="space-y-2">
-          <Label htmlFor="expiry">Auto Expire (Optional)</Label>
-          <Input
-            id="expiry"
-            type="datetime-local"
-            value={autoExpiry}
-            onChange={(e) => setAutoExpiry(e.target.value)}
-            min={new Date().toISOString().slice(0, 16)}
-          />
-          <p className="text-xs text-gray-500">
-            Status will automatically revert to "Available" at this time
-          </p>
+          {/* Action buttons */}
+           <div className="flex gap-2">
+             <Button 
+               variant="outline" 
+               className="flex-1 h-10 border-border text-white bg-transparent hover:bg-neutral-700/50"
+               onClick={() => setIsOpen(false)}
+             >
+               Cancel
+             </Button>
+             <Button 
+               className="flex-1 h-10"
+               onClick={handleUpdateStatus}
+               disabled={loading || !selectedStatus || !selectedCompany}
+             >
+               {loading ? (
+                 <>
+                   <Loader2 className="mr-2 h-4 w-4 animate-spin hover:bg-neutral-400" />
+                   Saving...
+                 </>
+               ) : (
+                 'Save'
+               )}
+             </Button>
+           </div>
         </div>
-
-        {/* Update Button */}
-        <Button 
-          onClick={handleUpdateStatus} 
-          className="w-full" 
-          disabled={loading || !selectedStatus || !selectedCompany}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Updating...
-            </>
-          ) : (
-            'Update Status'
-          )}
-        </Button>
-      </CardContent>
-    </Card>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

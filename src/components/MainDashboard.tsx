@@ -235,7 +235,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
   return (
     <div className="flex h-screen bg-background">
       {/* Left Sidebar - 300px */}
-      <div className="w-[300px] bg-card border-r border-border flex flex-col">
+      <div className="w-[300px] bg-background border-r border-border flex flex-col">
         {/* User Profile Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
@@ -292,30 +292,27 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                 {directConversations.map(conv => (
                   <div
                     key={conv.id}
-                    className="flex items-center space-x-3 p-2 hover:bg-accent rounded cursor-pointer"
+                    className="flex items-center justify-between p-2 hover:bg-accent rounded cursor-pointer"
                     onClick={() => setSelectedConversation(conv.id)}
                   >
-                    <div className="relative">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={conv.participant_avatar} />
-                        <AvatarFallback>{getInitials(conv.participant_name)}</AvatarFallback>
-                      </Avatar>
-                      <UserPresenceIndicator
-                        status={getUserStatus(conv.participant_id)}
-                        size="sm"
-                        className="absolute -bottom-1 -right-1"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="relative">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={conv.participant_avatar} />
+                          <AvatarFallback>{getInitials(conv.participant_name)}</AvatarFallback>
+                        </Avatar>
+                        <UserPresenceIndicator
+                          status={getUserStatus(conv.participant_id)}
+                          size="sm"
+                          className="absolute bottom-1 -right-4"
+                        />
+                      </div>
                       <p className="text-sm font-medium text-foreground truncate">
                         {conv.participant_name}
                       </p>
-                      {conv.last_message && (
-                        <p className="text-xs text-muted-foreground truncate">{conv.last_message}</p>
-                      )}
                     </div>
                     {conv.unread_count > 0 && (
-                      <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs flex-shrink-0 rounded-sm">
                         {conv.unread_count}
                       </Badge>
                     )}
@@ -337,23 +334,19 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                 {groupConversations.map(group => (
                   <div
                     key={group.id}
-                    className="flex items-center space-x-3 p-2 hover:bg-accent rounded cursor-pointer"
+                    className="flex items-center justify-between p-2 hover:bg-accent rounded cursor-pointer"
                     onClick={() => setSelectedConversation(group.id)}
                   >
-                    <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Users className="h-4 w-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <p className="text-sm font-medium text-foreground truncate">{group.name}</p>
-                        <span className="text-xs text-muted-foreground">({group.member_count})</span>
+                    <div className="flex items-center space-x-3 flex-1 min-w-0">
+                      <div className="h-6 w-6 bg-primary rounded-full flex items-center justify-center">
+                        <Users className="h-4 w-4 text-primary-foreground" />
                       </div>
-                      {group.last_message && (
-                        <p className="text-xs text-muted-foreground truncate">{group.last_message}</p>
-                      )}
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {group.name}
+                      </p>
                     </div>
                     {group.unread_count > 0 && (
-                      <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                      <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs flex-shrink-0 rounded-sm">
                         {group.unread_count}
                       </Badge>
                     )}
@@ -373,7 +366,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
       {/* Main Area - Flexible */}
       <div className={`${selectedConversation && !isMessageMinimized ? 'w-[400px]' : 'flex-1'} flex flex-col`}>
         {/* Header */}
-        <div className="bg-card border-b border-border p-4">
+        <div className="bg-background border-b border-border p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
@@ -422,7 +415,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                         <UserPresenceIndicator
                           status={getUserStatus(member.user_id)}
                           size="md"
-                          className="absolute -bottom-1 -right-1"
+                          className="absolute bottom-1 -right-4"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -471,7 +464,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
       {selectedConversation && (
         <div className={`${isMessageMinimized ? 'w-[300px]' : 'flex-1 min-w-0'} border-l border-border flex flex-col h-full overflow-hidden`}>
           {/* Chat Header */}
-          <div className="bg-card border-b border-border p-4">
+          <div className="bg-background border-b border-border px-4 py-[18px]">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Avatar className="h-8 w-8">
@@ -479,7 +472,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                 </Avatar>
                 <div>
                   <h3 className="font-medium">John Doe</h3>
-                  <p className="text-sm text-muted-foreground">Available</p>
                 </div>
               </div>
               <div className="flex items-center space-x-1">
@@ -509,8 +501,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
           {!isMessageMinimized && (
             <>
               {/* Pinned Messages */}
-              <div className="bg-yellow-50 border-b border-yellow-200 p-2">
-                <div className="flex items-center space-x-2 text-sm text-yellow-800">
+              <div className="bg-neutral-800/50 border-b border-border p-4">
+                <div className="flex items-center space-x-2 text-sm text-white">
                   <Pin className="h-4 w-4" />
                   <span>2 pinned messages</span>
                 </div>
@@ -533,7 +525,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                   
                   <div className="flex items-start space-x-3 justify-end">
                     <div className="flex-1 text-right">
-                      <div className="bg-blue-600 text-white rounded-lg p-3 inline-block">
+                      <div className="bg-white text-black rounded-lg p-3 inline-block">
                         <p className="text-sm">I'm doing great! Thanks for asking.</p>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">2:32 PM</p>
@@ -548,9 +540,9 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
               </ScrollArea>
 
               {/* Message Input */}
-              <div className="bg-card border-t border-border p-4">
+              <div className="bg-background border-t border-border p-4">
                 <div className="flex items-center space-x-2">
-                  <Input placeholder="Type a message..." className="flex-1" />
+                  <Input placeholder="Type a message..." className="flex-1 border border-border" />
                   <Button size="sm">
                     <Send className="h-4 w-4" />
                   </Button>
