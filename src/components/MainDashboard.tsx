@@ -378,11 +378,13 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                   className="pl-10 w-64"
                 />
               </div>
+            </div>
+            <div className="flex gap-3">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
-                    <SortAsc className="h-4 w-4 mr-2" />
-                    Sort by {sortBy}
+                    Sort
+                    <ChevronDown className="h-4 w-4 ml-2" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -391,11 +393,12 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                   <DropdownMenuItem onClick={() => setSortBy('activity')}>Activity</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button>
+                <Plus className="h-4 w-4" />
+                Create Group
+              </Button>
             </div>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Group
-            </Button>
+            
           </div>
         </div>
 

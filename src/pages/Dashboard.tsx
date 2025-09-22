@@ -5,7 +5,7 @@ import { useCompany } from '@/contexts/CompanyContext'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Building2, Users, Settings, Plus, LogOut, BarChart3, MessageCircle } from 'lucide-react'
+import { Building2, Users, Settings, Plus, LogOut, BarChart3, MessageCircle, Link } from 'lucide-react'
 
 const Dashboard = () => {
   const navigate = useNavigate()
@@ -87,8 +87,9 @@ const Dashboard = () => {
                 <Plus className="h-4 w-4 mr-2" />
                 Create Company
               </Button>
-              <Button variant="outline" size="lg" className="border-border/60 text-foreground hover:bg-muted">
-                Join Company
+              <Button variant="outline" size="lg" onClick={() => navigate('/join-company-by-link')} className="border-border/60 text-foreground hover:bg-muted">
+                <Link className="h-4 w-4 mr-2" />
+                Join by Link
               </Button>
             </div>
           </div>

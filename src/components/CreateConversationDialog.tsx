@@ -295,12 +295,12 @@ const CreateConversationDialog: React.FC<CreateConversationDialogProps> = ({
               return (
                 <div
                   key={user.id}
-                  className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-gray-50 ${
+                  className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer hover:bg-background ${
                     isSelected ? 'bg-blue-50 border border-blue-200' : ''
                   }`}
                   onClick={() => handleUserToggle(user)}
                 >
-                  <Checkbox checked={isSelected} readOnly />
+                  <Checkbox checked={isSelected} />
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.avatar_url} />
                     <AvatarFallback>

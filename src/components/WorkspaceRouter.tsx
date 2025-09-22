@@ -18,7 +18,7 @@ const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center space-y-4">
@@ -39,7 +39,7 @@ const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
   // Error state - invalid subdomain or company not found
   if (error || !isValidWorkspace) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
@@ -86,7 +86,7 @@ const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
         <WorkspaceContent company={company} />
       ) : (
         // User not authenticated - show login prompt
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-background">
           <WorkspaceLoginPrompt company={company} />
         </div>
       )}

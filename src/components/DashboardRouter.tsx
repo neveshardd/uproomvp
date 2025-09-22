@@ -14,7 +14,7 @@ const DashboardRouter: React.FC = () => {
     // If we're on a company subdomain and user has access to that company, redirect to workspace
     if (!isLoading && !companyLoading && subdomain && isValidWorkspace && company && user) {
       // Check if user is a member of this company
-      const isMemberOfThisCompany = userCompanies?.some(uc => uc.company_id === company.id)
+      const isMemberOfThisCompany = userCompanies?.some(uc => uc.id === company.id)
       
       if (isMemberOfThisCompany) {
         // Redirect to the company workspace root (which shows MainDashboard)
@@ -33,7 +33,7 @@ const DashboardRouter: React.FC = () => {
   // Show loading while checking subdomain and company status
   if (isLoading || companyLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-sm text-gray-600">Loading...</p>

@@ -11,6 +11,97 @@ export interface InvitationResult {
 
 export class InvitationService {
   /**
+   * Validate invitation token without accepting it
+   */
+  static async validateInvitation(token: string): Promise<InvitationResult> {
+    try {
+      // Find invitation by token
+      const { data: invitation, error: invitationError } = await supabase
+        .from('company_invitations')
+        .select(`
+          *,
+          company:companies(*),
+          inviter:profiles!company_invitations_invited_by_fkey(
+            id,
+            email,
+            full_name
+          )
+        `)
+        .eq('token', token)
+        .single()
+
+      if (invitationError || !invitation) {
+        return {
+          success: false,
+          message: 'Invalid invitation token'
+        }
+      }
+
+      // Check if invitation has expired
+      const expiresAt = new Date(invitation.expires_at)
+      if (expiresAt <= new Date()) {
+        return {
+          success: false,
+          message: 'Invitation has expired'
+        }
+      }
+
+      // Check if already accepted
+      if (invitation.accepted_at) {
+        return {
+          success: false,
+          message: 'Invitation has already been accepted'
+        }
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        return {
+          success: false,
+          message: 'Authentication required'
+        }
+      }
+
+      // Check if user email matches invitation
+      if (user.email !== invitation.email) {
+        return {
+          success: false,
+          message: 'This invitation is for a different email address'
+        }
+      }
+
+      // Check if user is already a member
+      const { data: existingMember } = await supabase
+        .from('company_members')
+        .select('id')
+        .eq('company_id', invitation.company_id)
+        .eq('user_id', user.id)
+        .single()
+
+      if (existingMember) {
+        return {
+          success: false,
+          message: 'You are already a member of this company'
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Invitation is valid',
+        invitation
+      }
+
+    } catch (error) {
+      console.error('Error validating invitation:', error)
+      return {
+        success: false,
+        message: 'An unexpected error occurred'
+      }
+    }
+  }
+
+  /**
    * Generate a secure invitation token
    */
   private static generateToken(): string {

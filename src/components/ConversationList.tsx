@@ -87,7 +87,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
             last_read_at,
             profiles (
               id,
-              full_name,
+              first_name,
+              last_name,
               avatar_url
             )
           )
@@ -110,7 +111,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
               user_id,
               profiles (
                 id,
-                full_name,
+                first_name,
+                last_name,
                 avatar_url
               )
             `)
@@ -125,7 +127,8 @@ const ConversationList: React.FC<ConversationListProps> = ({
               content,
               created_at,
               profiles!messages_user_id_fkey (
-                full_name
+                first_name,
+                last_name
               )
             `)
             .eq('conversation_id', conv.id)
@@ -151,13 +154,17 @@ const ConversationList: React.FC<ConversationListProps> = ({
             participants: (participantsData || []).map((p: any) => ({
               id: p.id,
               user_id: p.user_id,
-              user_name: p.profiles?.full_name || 'Unknown User',
+              user_name: p.profiles?.first_name && p.profiles?.last_name 
+                ? `${p.profiles.first_name} ${p.profiles.last_name}` 
+                : p.profiles?.first_name || 'Unknown User',
               user_avatar: p.profiles?.avatar_url
             })),
             last_message: lastMessageData ? {
               id: lastMessageData.id,
               content: lastMessageData.content,
-              user_name: lastMessageData.profiles?.full_name || 'Unknown User',
+              user_name: (lastMessageData.profiles as any)?.first_name && (lastMessageData.profiles as any)?.last_name 
+                ? `${(lastMessageData.profiles as any).first_name} ${(lastMessageData.profiles as any).last_name}` 
+                : (lastMessageData.profiles as any)?.first_name || 'Unknown User',
               created_at: lastMessageData.created_at
             } : undefined,
             unread_count: unreadCount || 0
@@ -327,7 +334,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
             {filteredConversations.map((conversation) => (
               <div
                 key={conversation.id}
-                className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                className={`p-4 hover:bg-background cursor-pointer transition-colors ${
                   selectedConversationId === conversation.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
                 }`}
                 onClick={() => onConversationSelect?.(conversation)}

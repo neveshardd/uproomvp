@@ -15,6 +15,7 @@ import ConversationList from './ConversationList'
 import MessageList from './MessageList'
 import MessageInput from './MessageInput'
 import StatusSelector from './StatusSelector'
+import CreateConversationDialog from './CreateConversationDialog'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { realtimeService, Message } from '../lib/realtime'
@@ -58,6 +59,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showCreateDialog, setShowCreateDialog] = useState(false)
+
+  const handleConversationCreated = (conversationId: string) => {
+    // Refresh conversation list or select the new conversation
+    // The ConversationList component should handle this via real-time updates
+    setShowCreateDialog(false)
+  }
 
   useEffect(() => {
     if (user && companyId) {
@@ -76,7 +84,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages([]) // Clear messages while loading new conversation
   }
 
-  const handleMessageUpdate = (updatedMessages: Message[]) => {
+  const handleMessageUpdate = (updatedMessages: any[]) => {
     setMessages(updatedMessages)
   }
 
@@ -114,7 +122,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   }
 
   return (
-    <div className={`flex h-full bg-gray-50 ${className}`}>
+    <div className={`flex h-full bg-background ${className}`}>
       {/* Sidebar */}
       <div className={`bg-white border-r transition-all duration-300 ${
         sidebarCollapsed ? 'w-16' : 'w-80'
@@ -215,7 +223,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
           </>
         ) : (
           /* Empty State */
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="flex-1 flex items-center justify-center bg-background">
             <div className="text-center">
               <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-300" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -224,16 +232,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
               <p className="text-gray-500 mb-6 max-w-sm">
                 Select a conversation from the sidebar to start messaging, or create a new conversation.
               </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Start New Conversation
-              </Button>
+              <Button onClick={() => setShowCreateDialog(true)}>
+                 <Plus className="h-4 w-4 mr-2" />
+                 Start New Conversation
+               </Button>
             </div>
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-export default ChatInterface
+      
+      <CreateConversationDialog
+         open={showCreateDialog}
+         onOpenChange={setShowCreateDialog}
+         companyId={companyId}
+         onConversationCreated={handleConversationCreated}
+       />
+     </div>
+   )
+ }
+ 
+ export default ChatInterface
