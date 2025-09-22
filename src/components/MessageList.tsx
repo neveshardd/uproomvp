@@ -1,14 +1,30 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Card } from './ui/card'
 import { Badge } from './ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
+import { Button } from './ui/button'
 import { 
-  FileText, 
-  Image as ImageIcon, 
-  File,
   Download,
-  Clock
+  FileText,
+  Image as ImageIcon,
+  Video,
+  Music,
+  Archive,
+  MoreVertical,
+  Reply,
+  Edit,
+  Trash2,
+  Clock,
+  Check,
+  CheckCheck,
+  File
 } from 'lucide-react'
+import { realtimeService, Message as RealtimeMessage, MessageEvent } from '../lib/realtime'
+import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
+import { formatMessageTimestamp, formatDetailedTimestamp } from '../utils/messageValidation'
+import { usePresence } from '../hooks/usePresence'
+import UserPresenceIndicator from './UserPresenceIndicator'
 
 interface MessageAttachment {
   id: string
@@ -18,7 +34,7 @@ interface MessageAttachment {
   url: string
 }
 
-interface Message {
+interface MessageData {
   id: string
   content: string
   user_id: string
@@ -30,41 +46,158 @@ interface Message {
 }
 
 interface MessageListProps {
-  messages: Message[]
+  conversationId?: string
+  companyId?: string
+  messages?: MessageData[]
   currentUserId?: string
   loading?: boolean
   className?: string
+  onMessageUpdate?: (messages: MessageData[]) => void
 }
 
 const MessageList: React.FC<MessageListProps> = ({
-  messages,
+  conversationId,
+  companyId,
+  messages: propMessages = [],
   currentUserId,
   loading = false,
-  className = ""
+  className = "",
+  onMessageUpdate
 }) => {
+  const { user } = useAuth()
+  const { getUserStatus } = usePresence(companyId)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [messages, setMessages] = useState<MessageData[]>(propMessages)
+  const [loadingMessages, setLoadingMessages] = useState(false)
 
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (conversationId) {
+      loadMessages()
+      subscribeToMessages()
+    }
+
+    return () => {
+      if (conversationId) {
+        realtimeService.unsubscribeFromConversation(conversationId)
+      }
+    }
+  }, [conversationId])
+
+  // Update messages when prop changes
+  useEffect(() => {
+    setMessages(propMessages)
+  }, [propMessages])
+
+  // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  const loadMessages = async () => {
+    if (!conversationId) return
+
+    setLoadingMessages(true)
+    try {
+      const { data: messagesData, error } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          profiles (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('conversation_id', conversationId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+
+      const formattedMessages: MessageData[] = (messagesData || []).map((msg: any) => ({
+        id: msg.id,
+        content: msg.content,
+        user_id: msg.user_id,
+        user_name: msg.profiles?.full_name || 'Unknown User',
+        user_avatar: msg.profiles?.avatar_url,
+        created_at: msg.created_at,
+        attachments: [] // TODO: Load attachments
+      }))
+
+      setMessages(formattedMessages)
+      onMessageUpdate?.(formattedMessages)
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    } finally {
+      setLoadingMessages(false)
+    }
+  }
+
+  const subscribeToMessages = () => {
+    if (!conversationId) return
+
+    realtimeService.subscribeToConversation(conversationId)
+    
+    const unsubscribe = realtimeService.onMessage((event: MessageEvent) => {
+      if (event.payload.conversation_id === conversationId) {
+        if (event.type === 'INSERT') {
+          // For new messages, we need to fetch user details from the database
+          const fetchUserDetails = async () => {
+            const { data: userData } = await supabase
+              .from('profiles')
+              .select('full_name, avatar_url')
+              .eq('id', event.payload.user_id)
+              .single()
+
+            const newMessage: MessageData = {
+              id: event.payload.id,
+              content: event.payload.content,
+              user_id: event.payload.user_id,
+              user_name: userData?.full_name || 'Unknown User',
+              user_avatar: userData?.avatar_url,
+              created_at: event.payload.created_at,
+              attachments: []
+            }
+            setMessages(prev => [...prev, newMessage])
+          }
+          fetchUserDetails()
+        } else if (event.type === 'UPDATE') {
+          // For updates, we can keep the existing user details
+          setMessages(prev => prev.map(msg => 
+            msg.id === event.payload.id ? {
+              ...msg,
+              content: event.payload.content,
+              created_at: event.payload.created_at
+            } : msg
+          ))
+        } else if (event.type === 'DELETE') {
+          setMessages(prev => prev.filter(msg => msg.id !== event.payload.id))
+        }
+      }
+    })
+
+    return unsubscribe
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const formatTime = (timestamp: string) => {
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-
-    if (diffInHours < 24) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    } else if (diffInHours < 24 * 7) {
-      return date.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
-    } else {
-      return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-    }
-  }
+  // Remove the old formatTime function and use the imported one
+  // const formatTime = (timestamp: string) => {
+  //   const date = new Date(timestamp)
+  //   const now = new Date()
+  //   const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+  //   
+  //   if (diffInHours < 24) {
+  //     return date.toLocaleDateString([], { hour: '2-digit', minute: '2-digit' })
+  //   } else if (diffInHours < 168) { // 7 days
+  //     return date.toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+  //   } else {
+  //     return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+  //   }
+  // }
 
   const getFileIcon = (type: string) => {
     if (type.startsWith('image/')) {
@@ -97,7 +230,7 @@ const MessageList: React.FC<MessageListProps> = ({
     return currentUserId === userId
   }
 
-  if (loading) {
+  if (loading || loadingMessages) {
     return (
       <Card className={`p-6 ${className}`}>
         <div className="flex items-center justify-center">
@@ -154,12 +287,21 @@ const MessageList: React.FC<MessageListProps> = ({
                   {!isOwn && (
                     <div className="flex-shrink-0 mr-3">
                       {showAvatar ? (
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={message.user_avatar} />
-                          <AvatarFallback className="text-xs">
-                            {getUserInitials(message.user_name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className="relative">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={message.user_avatar} />
+                            <AvatarFallback className="text-xs">
+                              {getUserInitials(message.user_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {/* Presence indicator */}
+                          <div className="absolute -bottom-0.5 -right-0.5">
+                            <UserPresenceIndicator 
+                              status={getUserStatus(message.user_id)} 
+                              size="sm"
+                            />
+                          </div>
+                        </div>
                       ) : (
                         <div className="h-8 w-8" />
                       )}
@@ -175,7 +317,7 @@ const MessageList: React.FC<MessageListProps> = ({
                           {message.user_name}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {formatTime(message.created_at)}
+                          {formatMessageTimestamp(message.created_at)}
                         </span>
                       </div>
                     )}
@@ -236,7 +378,7 @@ const MessageList: React.FC<MessageListProps> = ({
                     {/* Own Message Time */}
                     {isOwn && (
                       <div className="text-xs text-gray-500 text-right mt-1">
-                        {formatTime(message.created_at)}
+                        {formatMessageTimestamp(message.created_at)}
                       </div>
                     )}
                   </div>

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -11,6 +11,14 @@ const Dashboard = () => {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const { currentCompany, userCompanies, userRole, isLoading } = useCompany()
+
+  // Redirect users with company associations to their company workspace
+  useEffect(() => {
+    if (!isLoading && currentCompany) {
+      // Redirect to the company's subdomain workspace
+      window.location.href = `${window.location.protocol}//${currentCompany.subdomain}.${window.location.host}`
+    }
+  }, [currentCompany, isLoading])
 
   const handleSignOut = async () => {
     await signOut()

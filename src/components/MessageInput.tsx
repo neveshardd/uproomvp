@@ -3,6 +3,7 @@ import { Button } from './ui/button'
 import { Textarea } from './ui/textarea'
 import { Card } from './ui/card'
 import { Badge } from './ui/badge'
+import { Alert, AlertDescription } from './ui/alert'
 import { 
   Send, 
   Paperclip, 
@@ -10,17 +11,27 @@ import {
   X,
   FileText,
   Image as ImageIcon,
-  File
+  File,
+  AlertCircle
 } from 'lucide-react'
+import { realtimeService } from '../lib/realtime'
+import { 
+  validateMessage, 
+  validateAttachments, 
+  MAX_MESSAGE_LENGTH,
+  MAX_ATTACHMENTS 
+} from '../utils/messageValidation'
 
 interface MessageInputProps {
-  onSendMessage: (content: string, attachments?: File[]) => void
+  conversationId?: string
+  onSendMessage?: (content: string, attachments?: File[]) => void
   disabled?: boolean
   placeholder?: string
   className?: string
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
+  conversationId,
   onSendMessage,
   disabled = false,
   placeholder = "Type your message...",
@@ -28,17 +39,61 @@ const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
   const [message, setMessage] = useState('')
   const [attachments, setAttachments] = useState<File[]>([])
+  const [sending, setSending] = useState(false)
+  const [validationErrors, setValidationErrors] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const handleSend = () => {
-    if (message.trim() || attachments.length > 0) {
-      onSendMessage(message.trim(), attachments)
+  const handleSend = async () => {
+    // Clear previous validation errors
+    setValidationErrors([])
+    
+    // Validate message content
+    const messageValidation = validateMessage(message)
+    const attachmentValidation = validateAttachments(attachments)
+    
+    const allErrors = [...messageValidation.errors, ...attachmentValidation.errors]
+    
+    // If there are validation errors, show them and don't send
+    if (allErrors.length > 0) {
+      setValidationErrors(allErrors)
+      return
+    }
+    
+    // Check if we have content to send
+    if (!messageValidation.sanitizedContent && attachments.length === 0) {
+      setValidationErrors(['Please enter a message or attach a file'])
+      return
+    }
+    
+    setSending(true)
+    
+    try {
+      // Use sanitized content
+      const contentToSend = messageValidation.sanitizedContent || ''
+      
+      // If conversationId is provided, use realtime service
+      if (conversationId) {
+        await realtimeService.sendMessage(conversationId, contentToSend)
+      }
+      
+      // Call the optional callback
+      if (onSendMessage) {
+        onSendMessage(contentToSend, attachments)
+      }
+      
+      // Clear the input
       setMessage('')
       setAttachments([])
+      setValidationErrors([])
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto'
       }
+    } catch (error) {
+      console.error('Failed to send message:', error)
+      setValidationErrors(['Failed to send message. Please try again.'])
+    } finally {
+      setSending(false)
     }
   }
 
@@ -51,7 +106,18 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
-    setAttachments(prev => [...prev, ...files])
+    
+    // Validate new files before adding
+    const newAttachments = [...attachments, ...files]
+    const validation = validateAttachments(newAttachments)
+    
+    if (validation.isValid) {
+      setAttachments(newAttachments)
+      setValidationErrors([])
+    } else {
+      setValidationErrors(validation.errors)
+    }
+    
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -90,6 +156,20 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
   return (
     <Card className={`p-4 ${className}`}>
+      {/* Validation Errors */}
+      {validationErrors.length > 0 && (
+        <Alert className="mb-3 border-red-200 bg-red-50">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-700">
+            <ul className="list-disc list-inside space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index} className="text-sm">{error}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Attachments Preview */}
       {attachments.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-2">
@@ -153,7 +233,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
           {/* Send Button */}
           <Button
             onClick={handleSend}
-            disabled={disabled || (!message.trim() && attachments.length === 0)}
+            disabled={disabled || sending || (!message.trim() && attachments.length === 0)}
             size="sm"
             className="h-8 w-8 p-0"
           >
@@ -174,8 +254,15 @@ const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Character Count */}
       {message.length > 0 && (
-        <div className="mt-2 text-xs text-gray-500 text-right">
-          {message.length} characters
+        <div className={`mt-2 text-xs text-right ${
+          message.length > MAX_MESSAGE_LENGTH ? 'text-red-500' : 'text-gray-500'
+        }`}>
+          {message.length} / {MAX_MESSAGE_LENGTH} characters
+          {attachments.length > 0 && (
+            <span className="ml-2">
+              • {attachments.length} / {MAX_ATTACHMENTS} files
+            </span>
+          )}
         </div>
       )}
     </Card>

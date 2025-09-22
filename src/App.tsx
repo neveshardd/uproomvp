@@ -10,7 +10,9 @@ import ForgotPassword from './pages/ForgotPassword'
 import ResetPassword from './pages/ResetPassword'
 import AcceptInvitation from './pages/AcceptInvitation'
 import Dashboard from './pages/Dashboard'
+import CreateCompany from './pages/CreateCompany'
 import WorkspaceRouter from './components/WorkspaceRouter'
+import DashboardRouter from './components/DashboardRouter'
 
 function App() {
   return (
@@ -22,10 +24,12 @@ function App() {
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard" element={<DashboardRouter />} />
+              <Route path="/create-company" element={<ProtectedRoute><CreateCompany /></ProtectedRoute>} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/accept-invitation" element={<AcceptInvitation />} />
-              <Route path="/:subdomain/*" element={<WorkspaceRouter><div /></WorkspaceRouter>} />
+              <Route path="*" element={<WorkspaceRouter><div /></WorkspaceRouter>} />
             </Routes>
           </div>
           <Toaster />

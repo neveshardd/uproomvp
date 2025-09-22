@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, Building2, Loader2 } from 'lucide-react'
+import { ArrowLeft, Building2, Loader2, LogOut } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { Textarea } from '../components/ui/textarea'
 import { Alert, AlertDescription } from '../components/ui/alert'
+import { Badge } from '../components/ui/badge'
 import SubdomainChecker from '../components/SubdomainChecker'
 import { useCompany } from '../contexts/CompanyContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const createCompanySchema = z.object({
   name: z.string().min(2, 'Company name must be at least 2 characters'),
@@ -23,11 +25,17 @@ type CreateCompanyForm = z.infer<typeof createCompanySchema>
 
 const CreateCompany: React.FC = () => {
   const navigate = useNavigate()
-  const { createCompany } = useCompany()
+  const { user, signOut } = useAuth()
+  const { createCompany, userRole } = useCompany()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [subdomainValid, setSubdomainValid] = useState(false)
   const [subdomainAvailable, setSubdomainAvailable] = useState(false)
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/login')
+  }
 
   const {
     register,
@@ -74,7 +82,8 @@ const CreateCompany: React.FC = () => {
       if (result.error) {
         setError(result.error)
       } else {
-        navigate('/dashboard')
+        // Redirect to the company's subdomain workspace
+        window.location.href = `${window.location.protocol}//${data.subdomain}.${window.location.host}`
       }
     } catch (error) {
       console.error('Error creating company:', error)
@@ -90,127 +99,154 @@ const CreateCompany: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/dashboard')}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-          
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/dashboard')}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">
+                  Uproom
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Create your workspace
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-foreground">{user?.email}</p>
+                {userRole && (
+                  <Badge variant="secondary" className="text-xs bg-muted text-muted-foreground">
+                    {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
+                  </Badge>
+                )}
+              </div>
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="border-border/60 text-foreground hover:bg-muted">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          {/* Welcome Section */}
           <div className="text-center">
-            <Building2 className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-            <h1 className="text-3xl font-bold text-gray-900">Create Your Company</h1>
-            <p className="mt-2 text-gray-600">
+            <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-foreground mb-2">Create Your Company</h2>
+            <p className="text-muted-foreground">
               Set up your company workspace and get started with your team
             </p>
           </div>
-        </div>
 
-        {/* Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Company Information</CardTitle>
-            <CardDescription>
-              Tell us about your company to create your workspace
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Company Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Company Name *</Label>
-                <Input
-                  id="name"
-                  {...register('name')}
-                  placeholder="Enter your company name"
-                  className={errors.name ? 'border-red-500' : ''}
-                />
-                {errors.name && (
-                  <p className="text-sm text-red-600">{errors.name.message}</p>
-                )}
-              </div>
+          {/* Form */}
+          <div className="max-w-2xl mx-auto">
+            <Card className="bg-card/50 border-border/40">
+              <CardHeader>
+                <CardTitle className="text-foreground">Company Information</CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Tell us about your company to create your workspace
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                  {/* Company Name */}
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-foreground">Company Name *</Label>
+                    <Input
+                      id="name"
+                      {...register('name')}
+                      placeholder="Enter your company name"
+                      className={errors.name ? 'border-red-500' : ''}
+                    />
+                    {errors.name && (
+                      <p className="text-sm text-red-600">{errors.name.message}</p>
+                    )}
+                  </div>
 
-              {/* Subdomain */}
-              <div className="space-y-2">
-                <Label htmlFor="subdomain">Workspace URL *</Label>
-                <SubdomainChecker
-                  value={watchedSubdomain || ''}
-                  onChange={(value) => setValue('subdomain', value)}
-                  onValidationChange={handleSubdomainValidation}
-                />
-                {errors.subdomain && (
-                  <p className="text-sm text-red-600">{errors.subdomain.message}</p>
-                )}
-              </div>
+                  {/* Subdomain */}
+                  <div className="space-y-2">
+                    <Label htmlFor="subdomain" className="text-foreground">Workspace URL *</Label>
+                    <SubdomainChecker
+                      value={watchedSubdomain || ''}
+                      onChange={(value) => setValue('subdomain', value)}
+                      onValidationChange={handleSubdomainValidation}
+                    />
+                    {errors.subdomain && (
+                      <p className="text-sm text-red-600">{errors.subdomain.message}</p>
+                    )}
+                  </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Description (Optional)</Label>
-                <Textarea
-                  id="description"
-                  {...register('description')}
-                  placeholder="Tell us about your company..."
-                  rows={3}
-                />
-                {errors.description && (
-                  <p className="text-sm text-red-600">{errors.description.message}</p>
-                )}
-              </div>
+                  {/* Description */}
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-foreground">Description (Optional)</Label>
+                    <Textarea
+                      id="description"
+                      {...register('description')}
+                      placeholder="Tell us about your company..."
+                      rows={3}
+                    />
+                  </div>
 
-              {/* Error Alert */}
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {/* Submit Button */}
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => navigate('/dashboard')}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isLoading || !subdomainValid || !subdomainAvailable}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    'Create Company'
+                  {/* Error Alert */}
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
                   )}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
 
-        {/* Info Card */}
-        <Card className="mt-6">
-          <CardContent className="pt-6">
-            <h3 className="font-semibold text-gray-900 mb-2">What happens next?</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Your company workspace will be created</li>
-              <li>• You'll be set as the company owner</li>
-              <li>• You can start inviting team members</li>
-              <li>• Your workspace will be accessible at your custom subdomain</li>
-            </ul>
-          </CardContent>
-        </Card>
-      </div>
+                  {/* Submit Button */}
+                  <Button
+                    type="submit"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={isLoading || !subdomainValid || !subdomainAvailable}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating Company...
+                      </>
+                    ) : (
+                      <>
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Create Company
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            {/* Info Card */}
+            <Card className="mt-6 bg-card/50 border-border/40">
+              <CardContent className="pt-6">
+                <div className="text-center text-sm text-muted-foreground">
+                  <p>
+                    Once created, your team will be able to access your workspace at{' '}
+                    <span className="font-mono bg-muted px-1 py-0.5 rounded text-foreground">
+                      {watchedSubdomain || 'your-company'}.uproom.com
+                    </span>
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
     </div>
   )
 }

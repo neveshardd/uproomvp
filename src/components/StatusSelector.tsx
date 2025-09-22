@@ -18,8 +18,13 @@ import {
   Zap,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  ChevronDown,
+  Circle,
+  AlertTriangle,
+  Minus
 } from 'lucide-react'
+import { realtimeService, UserStatus } from '../lib/realtime'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -47,60 +52,44 @@ const statusOptions: StatusOption[] = [
     defaultMessage: 'Available for work'
   },
   {
-    type: 'busy',
-    label: 'Busy',
+    type: 'focus',
+    label: 'Focus',
     icon: <Zap className="h-4 w-4" />,
-    color: 'bg-red-500',
+    color: 'bg-purple-500',
     description: 'Focused work, minimal interruptions',
     defaultMessage: 'In deep work mode'
   },
   {
-    type: 'in_meeting',
-    label: 'In Meeting',
+    type: 'meeting',
+    label: 'Meeting',
     icon: <Calendar className="h-4 w-4" />,
     color: 'bg-blue-500',
     description: 'Currently in a meeting',
     defaultMessage: 'In a meeting'
   },
   {
-    type: 'on_call',
-    label: 'On Call',
-    icon: <Phone className="h-4 w-4" />,
-    color: 'bg-purple-500',
-    description: 'Taking a phone call',
-    defaultMessage: 'On a call'
+    type: 'away',
+    label: 'Away',
+    icon: <Clock className="h-4 w-4" />,
+    color: 'bg-yellow-500',
+    description: 'Temporarily away from desk',
+    defaultMessage: 'Away from desk'
   },
   {
     type: 'break',
-    label: 'On Break',
+    label: 'Break',
     icon: <Coffee className="h-4 w-4" />,
     color: 'bg-orange-500',
     description: 'Taking a short break',
     defaultMessage: 'Taking a break'
   },
   {
-    type: 'lunch',
-    label: 'At Lunch',
-    icon: <Coffee className="h-4 w-4" />,
-    color: 'bg-yellow-500',
-    description: 'Out for lunch',
-    defaultMessage: 'Out for lunch'
-  },
-  {
-    type: 'away',
-    label: 'Away',
-    icon: <Clock className="h-4 w-4" />,
-    color: 'bg-gray-500',
-    description: 'Temporarily away from desk',
-    defaultMessage: 'Away from desk'
-  },
-  {
-    type: 'wfh',
-    label: 'Working from Home',
-    icon: <Home className="h-4 w-4" />,
-    color: 'bg-indigo-500',
-    description: 'Working remotely today',
-    defaultMessage: 'Working from home'
+    type: 'emergency',
+    label: 'Emergency',
+    icon: <AlertTriangle className="h-4 w-4" />,
+    color: 'bg-red-500',
+    description: 'Emergency situation - urgent attention needed',
+    defaultMessage: 'Emergency - please contact immediately'
   },
   {
     type: 'offline',
@@ -220,20 +209,11 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     setSuccess('')
 
     try {
-      const statusData = {
-        user_id: user.id,
-        company_id: selectedCompany,
-        status_type: selectedStatus,
-        status_message: customMessage || null,
-        auto_set: false,
-        expires_at: autoExpiry ? new Date(autoExpiry).toISOString() : null
-      }
-
-      const { error } = await supabase
-        .from('user_status')
-        .insert(statusData)
-
-      if (error) throw error
+      // Use realtime service to update status
+      await realtimeService.updateUserStatus(
+        selectedStatus as UserStatus['status'], 
+        customMessage || undefined
+      )
 
       setSuccess('Status updated successfully!')
       

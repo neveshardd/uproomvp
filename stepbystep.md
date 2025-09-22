@@ -34,40 +34,33 @@ https://api.mailgun.net
 - [x] **Basic rate limiting** - ✅ Supabase provides built-in protection
 
 
-2. Basic Messaging & Status Foundation
+## 2. Basic Messaging & Status Foundation
 
-2.1. Core Messaging Features
+### 2.1. Core Messaging Features
+- [ ] **Send/receive text messages** - ⏳ Frontend components ready, backend integration needed
+- [ ] **Real-time delivery via WebSocket (Supabase Realtime)** - ⏳ Package available, implementation needed
+- [ ] **Message persistence in PostgreSQL** - ⏳ Database schema needed
+- [ ] **Message validation and XSS prevention** - ⏳ Pending implementation
+- [ ] **Timestamp handling with time zones** - ⏳ Pending implementation
 
-Send/receive text messages
-Real-time delivery via WebSocket (Socket.io)
-Message persistence in PostgreSQL
-Message validation and XSS prevention
-Timestamp handling with time zones
+### 2.2. Status System Foundation
+- [x] **Initial Status Setup: New users start with "Offline" status and message "Finished for today"** - ✅ StatusSelector component implemented
+- [x] **Status Types: Available, Focus, Meeting, Away, Break, Emergency, Offline** - ✅ 9 status types implemented (exceeds requirement)
+- [x] **Custom Status Messages: Users can set personalized status descriptions** - ✅ StatusSelector supports custom messages
+- [ ] **Status Persistence: Store status in database with timestamps** - ⏳ Database schema needed
+- [ ] **Real-time Status Updates: Broadcast status changes via WebSocket** - ⏳ Integration needed
 
+### 2.3. Direct Conversations
+- [ ] **One-on-one conversation creation** - ⏳ Backend system needed
+- [ ] **Conversation listing with last message preview** - ⏳ Backend integration needed
+- [ ] **Message history with pagination (50 messages per page)** - ⏳ Backend implementation needed
+- [ ] **Basic conversation search by participant name** - ⏳ Search functionality needed
 
-2.2. Status System Foundation
-
-Initial Status Setup: New users start with "Offline" status and message "Finished for today"
-Status Types: Available, Focus, Meeting, Away, Break, Emergency, Offline
-Custom Status Messages: Users can set personalized status descriptions
-Status Persistence: Store status in database with timestamps
-Real-time Status Updates: Broadcast status changes via WebSocket
-
-
-2.3. Direct Conversations
-
-One-on-one conversation creation
-Conversation listing with last message preview
-Message history with pagination (50 messages per page)
-Basic conversation search by participant name
-
-
-2.4. Real-time Infrastructure
-
-WebSocket connection management with Socket.io
-User online/offline detection based on socket connections
-Message broadcasting to conversation participants
-Connection recovery and reconnection handling
+### 2.4. Real-time Infrastructure
+- [ ] **WebSocket connection management with Supabase Realtime** - ⏳ Implementation needed
+- [ ] **User online/offline detection based on socket connections** - ⏳ Presence system needed
+- [ ] **Message broadcasting to conversation participants** - ⏳ Real-time messaging needed
+- [ ] **Connection recovery and reconnection handling** - ⏳ Built into Supabase Realtime
 
 
 3. Basic UI & Enhanced Status Display
