@@ -3,13 +3,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Eye, EyeOff, Lock, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, Lock, CheckCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
+import { useRateLimit } from '@/hooks/useRateLimit'
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -30,6 +32,18 @@ const ResetPassword = () => {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  
+  // Rate limiting for password reset attempts
+  const { 
+    isBlocked, 
+    remainingAttempts, 
+    executeWithRateLimit 
+  } = useRateLimit({
+    action: 'reset-password',
+    identifier: 'global',
+    maxAttempts: 5,
+    windowMs: 10 * 60 * 1000 // 10 minutes
+  })
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
@@ -68,39 +82,37 @@ const ResetPassword = () => {
   }, [searchParams])
 
   const onSubmit = async (data: ResetPasswordFormData) => {
-    setIsLoading(true)
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: data.password
-      })
+    await executeWithRateLimit(async () => {
+      setIsLoading(true)
+      try {
+        const { error } = await supabase.auth.updateUser({
+          password: data.password
+        })
 
-      if (error) {
-        toast({
-          title: 'Error',
-          description: error.message,
-          variant: 'destructive',
-        })
-      } else {
-        setResetComplete(true)
-        toast({
-          title: 'Password Updated',
-          description: 'Your password has been successfully updated.',
-        })
-        
-        // Redirect to login after a short delay
-        setTimeout(() => {
-          navigate('/login')
-        }, 3000)
+        if (error) {
+          throw new Error(error.message)
+        } else {
+          setResetComplete(true)
+          toast({
+            title: 'Password Updated',
+            description: 'Your password has been successfully updated.',
+          })
+          
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            navigate('/login')
+          }, 3000)
+        }
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
+    }, undefined, (error) => {
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
+        description: error.message,
         variant: 'destructive',
       })
-    } finally {
-      setIsLoading(false)
-    }
+    })
   }
 
   if (isValidToken === null) {
@@ -165,6 +177,25 @@ const ResetPassword = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Rate Limit Alerts */}
+          {isBlocked && (
+            <Alert className="mb-4 border-destructive/50 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Too many password reset attempts. Please wait before trying again.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!isBlocked && remainingAttempts <= 2 && remainingAttempts > 0 && (
+            <Alert className="mb-4 border-yellow-500/50 text-yellow-600">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Warning: {remainingAttempts} attempt{remainingAttempts === 1 ? '' : 's'} remaining before temporary lockout.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -241,8 +272,8 @@ const ResetPassword = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Updating Password...' : 'Update Password'}
+              <Button type="submit" className="w-full" disabled={isLoading || isBlocked}>
+                {isLoading ? 'Updating Password...' : isBlocked ? 'Reset Blocked' : 'Update Password'}
               </Button>
             </form>
           </Form>

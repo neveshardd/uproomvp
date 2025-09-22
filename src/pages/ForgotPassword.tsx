@@ -3,13 +3,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link } from 'react-router-dom'
-import { Mail, ArrowLeft } from 'lucide-react'
+import { Mail, ArrowLeft, AlertTriangle, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/lib/supabase'
+import { useRateLimit } from '@/hooks/useRateLimit'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -21,6 +23,16 @@ const ForgotPassword = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const { toast } = useToast()
+  
+  // Rate limiting for password reset attempts
+  const { 
+    isBlocked, 
+    remainingAttempts, 
+    executeWithRateLimit 
+  } = useRateLimit({
+    action: 'forgot-password',
+    identifier: 'global'
+  })
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -30,34 +42,32 @@ const ForgotPassword = () => {
   })
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
-    setIsLoading(true)
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      })
+    await executeWithRateLimit(async () => {
+      setIsLoading(true)
+      try {
+        const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        })
 
-      if (error) {
-        toast({
-          title: 'Error',
-          description: error.message,
-          variant: 'destructive',
-        })
-      } else {
-        setEmailSent(true)
-        toast({
-          title: 'Reset Email Sent',
-          description: 'Please check your email for password reset instructions.',
-        })
+        if (error) {
+          throw new Error(error.message)
+        } else {
+          setEmailSent(true)
+          toast({
+            title: 'Reset Email Sent',
+            description: 'Please check your email for password reset instructions.',
+          })
+        }
+      } finally {
+        setIsLoading(false)
       }
-    } catch (error) {
+    }, undefined, (error) => {
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
+        description: error.message,
         variant: 'destructive',
       })
-    } finally {
-      setIsLoading(false)
-    }
+    })
   }
 
   if (emailSent) {
@@ -106,6 +116,25 @@ const ForgotPassword = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Rate Limit Alerts */}
+          {isBlocked && (
+            <Alert className="mb-4 border-destructive/50 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Too many reset attempts. Please wait before trying again.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!isBlocked && remainingAttempts <= 1 && remainingAttempts > 0 && (
+              <Alert className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Warning: {remainingAttempts} attempt remaining before temporary lockout.
+                </AlertDescription>
+              </Alert>
+            )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -131,8 +160,8 @@ const ForgotPassword = () => {
                 )}
               />
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Sending...' : 'Send Reset Link'}
+              <Button type="submit" className="w-full" disabled={isLoading || isBlocked}>
+                {isLoading ? 'Sending...' : isBlocked ? 'Reset Blocked' : 'Send Reset Link'}
               </Button>
             </form>
           </Form>

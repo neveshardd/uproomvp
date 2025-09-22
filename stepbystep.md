@@ -16,7 +16,15 @@
 - [ ] **Rate limiting on authentication endpoints** - 🔄 In Progress
 - [ ] **CORS configuration for frontend** - ⏳ Pending
 - [ ] **Unique subdomain handling** - ⏳ Pending  
-- [ ] **Basic user invitation via email** - ⏳ Pending
+- [ ] **Basic user invitation via email 
+Mailgun:
+API Key
+9719b533d9e3a17138a158c9515a9059-3c134029-e935ac20
+Sandbox domain
+sandbox5d23280595fa4a9f81cd0cbc8c926e4c.mailgun.org
+Base URL
+https://api.mailgun.net
+** - ⏳ Pending
 - [ ] **Company settings structure** - ⏳ Pending
 
 ### Security Implementation

@@ -8,6 +8,26 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    cors: {
+      origin: [
+        'http://localhost:8080',
+        'https://localhost:8080',
+        /^https:\/\/.*\.uproom\.com$/,
+        /^http:\/\/.*\.localhost:8080$/,
+        /^https:\/\/.*\.localhost:8080$/
+      ],
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Requested-With',
+        'Accept',
+        'Origin',
+        'X-Client-Info',
+        'apikey'
+      ]
+    }
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

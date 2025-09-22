@@ -9,6 +9,7 @@ export interface Company {
   website_url?: string
   created_at: string
   updated_at: string
+  members?: CompanyMember[]
 }
 
 export interface CompanyMember {

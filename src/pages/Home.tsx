@@ -1,6 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { Button } from "../components/ui/button";
+import { Card } from "../components/ui/card";
+import { Badge } from "../components/ui/badge";
 import { 
   MessageCircle, 
   Clock, 
@@ -16,18 +18,39 @@ import {
   Eye
 } from "lucide-react";
 import heroImage from "@/assets/hero-workspace.jpg";
+import { useAuth } from '@/contexts/AuthContext'
 
-import { useNavigate } from "react-router-dom";
-
-const LandingPage = () => {
-  const navigate = useNavigate();
-
-  const handleGetStarted = () => {
-    navigate('/register');
-  };
+const Home = () => {
+  const { user } = useAuth()
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="relative z-50 bg-background/80 backdrop-blur-sm border-b border-border">
+        <div className="container mx-auto px-6">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <h1 className="text-2xl font-bold text-foreground">Uproom</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              {user ? (
+                <Link to="/dashboard">
+                  <Button variant="default" className="rounded-lg">
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <Link to="/login">
+                  <Button variant="ghost" className="rounded-lg">
+                    Login
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div 
@@ -49,13 +72,11 @@ const LandingPage = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button 
-                size="lg" 
-                className="text-lg px-8 py-6 rounded-lg shadow-glow transition-smooth hover:shadow-card-hover"
-                onClick={handleGetStarted}
-              >
-                Create Your Workspace for Free
-              </Button>
+              <Link to="/login">
+                <Button size="lg" className="text-lg px-8 py-6 rounded-lg shadow-glow transition-smooth hover:shadow-card-hover">
+                  Create Your Workspace for Free
+                </Button>
+              </Link>
               <Button variant="ghost" size="lg" className="text-lg px-8 py-6 rounded-lg">
                 Request a Demo
               </Button>
@@ -291,9 +312,11 @@ const LandingPage = () => {
               Sign up in 60 seconds.
             </p>
             
-            <Button size="lg" className="text-lg px-12 py-6 rounded-lg shadow-glow transition-smooth hover:shadow-card-hover">
-              Start Your Free Trial Today
-            </Button>
+            <Link to="/login">
+              <Button size="lg" className="text-lg px-12 py-6 rounded-lg shadow-glow transition-smooth hover:shadow-card-hover">
+                Start Your Free Trial Today
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -301,4 +324,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default Home

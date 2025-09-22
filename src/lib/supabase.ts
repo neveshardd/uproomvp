@@ -35,11 +35,4 @@ supabase.auth.getSession().then(({ data, error }) => {
   }
 })
 
-// Test a simple query to check database connectivity
-supabase.from('_realtime_schema_migrations').select('*').limit(1).then(({ data, error }) => {
-  if (error) {
-    console.log('Database connectivity test - Expected error for protected table:', error.message)
-  } else {
-    console.log('Database connectivity test successful')
-  }
-})
+// Database connectivity will be tested when needed during actual operations

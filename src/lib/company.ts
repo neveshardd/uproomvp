@@ -88,7 +88,7 @@ export class CompanyService {
       }
 
       // Transform the data to match the expected Company type
-      const companies = data?.map(item => item.companies).filter(Boolean) || []
+      const companies: Company[] = data?.map((item: any) => item.companies).filter(Boolean) || []
       return { companies, error: null }
     } catch (error) {
       console.error('Unexpected error fetching companies:', error)

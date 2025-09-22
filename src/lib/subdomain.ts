@@ -155,8 +155,12 @@ export class SubdomainService {
     const hostname = window.location.hostname
     const parts = hostname.split('.')
     
-    // For localhost development
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    // For localhost development with port
+    if (hostname.includes('localhost')) {
+      // Check for subdomain.localhost:port format
+      if (parts.length >= 2 && parts[1] === 'localhost') {
+        return parts[0]
+      }
       return null
     }
     
@@ -165,6 +169,51 @@ export class SubdomainService {
       return parts[0]
     }
     
+    // For development with custom domains
+    if (parts.length === 2 && !['localhost', '127.0.0.1'].includes(parts[0])) {
+      return parts[0]
+    }
+    
     return null
+  }
+
+  /**
+   * Check if current environment supports subdomains
+   */
+  static supportsSubdomains(): boolean {
+    if (typeof window === 'undefined') return false
+    
+    const hostname = window.location.hostname
+    
+    // Production environment
+    if (hostname.includes('uproom.com')) {
+      return true
+    }
+    
+    // Development with localhost subdomains
+    if (hostname.includes('localhost') && hostname !== 'localhost') {
+      return true
+    }
+    
+    return false
+  }
+
+  /**
+   * Get workspace URL with proper subdomain handling
+   */
+  static getWorkspaceUrl(subdomain: string, path: string = ''): string {
+    const protocol = window.location.protocol
+    const port = window.location.port
+    
+    let domain: string
+    
+    if (process.env.NODE_ENV === 'production') {
+      domain = process.env.VITE_DOMAIN || 'uproom.com'
+    } else {
+      domain = port ? `localhost:${port}` : 'localhost:8080'
+    }
+    
+    const baseUrl = `${protocol}//${subdomain}.${domain}`
+    return path ? `${baseUrl}${path.startsWith('/') ? path : '/' + path}` : baseUrl
   }
 }

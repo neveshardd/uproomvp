@@ -3,13 +3,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock, User, MessageCircle } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, MessageCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { useRateLimit } from '@/hooks/useRateLimit'
 
 const registerSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -39,56 +41,82 @@ const Register = () => {
     },
   })
 
+  const {
+    isBlocked,
+    remainingAttempts,
+    executeWithRateLimit
+  } = useRateLimit({
+    action: 'register',
+    identifier: form.watch('email') || 'unknown',
+    maxAttempts: 5,
+    windowMs: 15 * 60 * 1000 // 15 minutes
+  })
+
   const onSubmit = async (data: RegisterFormData) => {
-    setIsLoading(true)
-    try {
-      console.log('Attempting registration with:', { email: data.email })
-      const { error } = await signUp(data.email, data.password)
-      
-      console.log('Registration result:', { error })
-      
-      if (error) {
-        console.error('Registration error details:', {
-          message: error.message,
-          status: error.status,
-          code: (error as any)?.code,
-          details: error
-        })
-        
-        let errorMessage = error.message
-        
-        // Provide more specific error messages
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password format'
-        } else if (error.message.includes('User already registered')) {
-          errorMessage = 'An account with this email already exists'
-        } else if (error.message.includes('Password should be at least')) {
-          errorMessage = 'Password must be at least 6 characters long'
-        } else if (error.message.includes('Unable to validate email address')) {
-          errorMessage = 'Please enter a valid email address'
-        } else if (error.message.includes('Database error')) {
-          errorMessage = 'Database connection error. Please check your Supabase configuration.'
-        }
-        
-        toast({
-          title: 'Registration Failed',
-          description: errorMessage,
-          variant: 'destructive',
-        })
-      } else {
-        toast({
-          title: 'Registration Successful!',
-          description: 'Please check your email to verify your account.',
-        })
-        navigate('/login')
-      }
-    } catch (error) {
-      console.error('Unexpected registration error:', error)
+    if (isBlocked) {
       toast({
-        title: 'Registration Failed',
-        description: 'An unexpected error occurred. Please try again.',
+        title: 'Registration Blocked',
+        description: 'Too many registration attempts. Please wait before trying again.',
         variant: 'destructive',
       })
+      return
+    }
+
+    setIsLoading(true)
+    
+    try {
+      await executeWithRateLimit(
+        async () => {
+          console.log('Attempting registration with:', { email: data.email })
+          const { error } = await signUp(data.email, data.password)
+          
+          console.log('Registration result:', { error })
+          
+          if (error) {
+            console.error('Registration error details:', {
+              message: error.message,
+              status: error.status,
+              code: (error as any)?.code,
+              details: error
+            })
+            
+            let errorMessage = error.message
+            
+            // Provide more specific error messages
+            if (error.message.includes('Invalid login credentials')) {
+              errorMessage = 'Invalid email or password format'
+            } else if (error.message.includes('User already registered')) {
+              errorMessage = 'An account with this email already exists'
+            } else if (error.message.includes('Password should be at least')) {
+              errorMessage = 'Password must be at least 6 characters long'
+            } else if (error.message.includes('Unable to validate email address')) {
+              errorMessage = 'Please enter a valid email address'
+            } else if (error.message.includes('Database error')) {
+              errorMessage = 'Database connection error. Please check your Supabase configuration.'
+            }
+            
+            throw new Error(errorMessage)
+          }
+          
+          return { success: true }
+        },
+        () => {
+          toast({
+            title: 'Registration Successful!',
+            description: 'Please check your email to verify your account.',
+          })
+          navigate('/login')
+        },
+        (error) => {
+          toast({
+            title: 'Registration Failed',
+            description: error.message,
+            variant: 'destructive',
+          })
+        }
+      )
+    } catch (error) {
+      // Error already handled by executeWithRateLimit
     } finally {
       setIsLoading(false)
     }
@@ -119,6 +147,25 @@ const Register = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Rate Limit Alerts */}
+            {isBlocked && (
+              <Alert className="mb-4 border-destructive/50 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Too many failed attempts. Please wait before trying again.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {!isBlocked && remainingAttempts <= 2 && remainingAttempts > 0 && (
+              <Alert className="mb-4 border-yellow-500/50 text-yellow-600">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Warning: {remainingAttempts} attempt{remainingAttempts === 1 ? '' : 's'} remaining before temporary lockout.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -218,8 +265,8 @@ const Register = () => {
                   )}
                 />
 
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
-                  {isLoading ? 'Creating account...' : 'Create Account'}
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading || isBlocked}>
+                  {isLoading ? 'Creating account...' : isBlocked ? 'Registration Blocked' : 'Create Account'}
                 </Button>
               </form>
             </Form>

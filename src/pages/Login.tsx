@@ -3,13 +3,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Link, useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, Mail, Lock, MessageCircle } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, MessageCircle, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
+import { useRateLimit } from '@/hooks/useRateLimit'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -33,30 +35,68 @@ const Login = () => {
     },
   })
 
-  const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true)
-    try {
-      const { error } = await signIn(data.email, data.password)
-      
-      if (error) {
-        toast({
-          title: 'Login Failed',
-          description: error.message,
-          variant: 'destructive',
-        })
-      } else {
-        toast({
-          title: 'Welcome back!',
-          description: 'You have successfully logged in.',
-        })
-        navigate('/')
-      }
-    } catch (error) {
+  const {
+    isBlocked,
+    remainingAttempts,
+    message: rateLimitMessage,
+    executeWithRateLimit
+  } = useRateLimit({
+    action: 'login',
+    identifier: form.watch('email') || 'unknown',
+    onBlocked: (result) => {
       toast({
-        title: 'Login Failed',
-        description: 'An unexpected error occurred. Please try again.',
+        title: 'Too Many Attempts',
+        description: result.message,
         variant: 'destructive',
       })
+    },
+    onWarning: (result) => {
+      toast({
+        title: 'Warning',
+        description: result.message,
+        variant: 'default',
+      })
+    }
+  })
+
+  const onSubmit = async (data: LoginFormData) => {
+    if (isBlocked) {
+      toast({
+        title: 'Login Blocked',
+        description: rateLimitMessage,
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsLoading(true)
+    
+    try {
+      await executeWithRateLimit(
+        async () => {
+          const { error } = await signIn(data.email, data.password)
+          if (error) {
+            throw new Error(error.message)
+          }
+          return { success: true }
+        },
+        () => {
+          toast({
+            title: 'Welcome back!',
+            description: 'You have successfully logged in.',
+          })
+          navigate('/dashboard')
+        },
+        (error) => {
+          toast({
+            title: 'Login Failed',
+            description: error.message,
+            variant: 'destructive',
+          })
+        }
+      )
+    } catch (error) {
+      // Error already handled by executeWithRateLimit
     } finally {
       setIsLoading(false)
     }
@@ -87,6 +127,18 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {(isBlocked || (remainingAttempts <= 2 && remainingAttempts > 0)) && (
+              <Alert className={`mb-4 ${isBlocked ? 'border-destructive' : 'border-yellow-500'}`}>
+                <AlertTriangle className={`h-4 w-4 ${isBlocked ? 'text-destructive' : 'text-yellow-500'}`} />
+                <AlertDescription className={isBlocked ? 'text-destructive' : 'text-yellow-600'}>
+                  {isBlocked 
+                    ? rateLimitMessage 
+                    : `Warning: ${remainingAttempts} login attempts remaining before temporary lockout.`
+                  }
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -149,8 +201,8 @@ const Login = () => {
                   )}
                 />
 
-                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading}>
-                  {isLoading ? 'Signing in...' : 'Sign In'}
+                <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isLoading || isBlocked}>
+                  {isLoading ? 'Signing in...' : isBlocked ? 'Login Blocked' : 'Sign In'}
                 </Button>
               </form>
             </Form>

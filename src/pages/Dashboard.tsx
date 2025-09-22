@@ -14,6 +14,7 @@ const Dashboard = () => {
 
   const handleSignOut = async () => {
     await signOut()
+    navigate('/login')
   }
 
   if (isLoading) {
@@ -104,7 +105,7 @@ const Dashboard = () => {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-foreground">{companyMembers.length}</div>
+                  <div className="text-2xl font-bold text-foreground">0</div>
                   <p className="text-xs text-muted-foreground">
                     Active members in your workspace
                   </p>
@@ -148,7 +149,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {companyMembers.map((member) => (
+                  {currentCompany?.members?.map((member) => (
                     <div key={member.id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
