@@ -103,7 +103,7 @@ const SubdomainChecker: React.FC<SubdomainCheckerProps> = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             className={cn(
-              'flex-1 min-w-0 block w-full px-3 py-2 rounded-none border focus:ring-blue-500 focus:border-blue-500 text-sm',
+              'flex-1 min-w-0 block w-full px-3 py-2 rounded-none border focus:ring-blue-500 focus:border-neutral-500 text-sm',
               getStatusColor()
             )}
             placeholder="your-company"

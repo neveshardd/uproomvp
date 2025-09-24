@@ -14,6 +14,7 @@ import CreateCompany from './pages/CreateCompany'
 import JoinCompanyByLink from './pages/JoinCompanyByLink'
 import WorkspaceRouter from './components/WorkspaceRouter'
 import DashboardRouter from './components/DashboardRouter'
+import MainDashboardRouter from './components/MainDashboardRouter'
 
 function App() {
   return (
@@ -22,10 +23,11 @@ function App() {
         <CompanyProvider>
           <div className="min-h-screen bg-background">
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<WorkspaceRouter><Index /></WorkspaceRouter>} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/dashboard" element={<DashboardRouter />} />
+              <Route path="/maindashboard" element={<MainDashboardRouter />} />
               <Route path="/create-company" element={<ProtectedRoute><CreateCompany /></ProtectedRoute>} />
               <Route path="/join-company-by-link" element={<ProtectedRoute><JoinCompanyByLink /></ProtectedRoute>} />
               <Route path="/forgot-password" element={<ForgotPassword />} />

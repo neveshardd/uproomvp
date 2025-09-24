@@ -20,9 +20,12 @@ import {
   SortAsc,
   MoreVertical,
   Minus,
+  Maximize2,
   X,
   Pin,
-  Send
+  Send,
+  User,
+  LogOut
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -48,7 +51,7 @@ interface MainDashboardProps {
     id: string
     name: string
     subdomain: string
-    description: string | null
+    description?: string
     owner_id: string
     created_at: string
   }
@@ -91,7 +94,7 @@ interface GroupConversation {
 }
 
 const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userRole }) => {
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const { currentCompany } = useCompany()
   
   // Use passed company data or fallback to context
@@ -236,42 +239,61 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
     <div className="flex h-screen bg-background">
       {/* Left Sidebar - 300px */}
       <div className="w-[300px] bg-background border-r border-border flex flex-col">
-        {/* User Profile Header */}
+        {/* Company Profile Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
-                <AvatarFallback>
-                  {getInitials(user?.user_metadata?.full_name || user?.email || 'U')}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {user?.user_metadata?.full_name || user?.email?.split('@')[0]}
-                </p>
-                <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
-              </div>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center space-x-3 cursor-pointer hover:bg-accent/50 rounded-lg p-2 -m-2 transition-colors">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>
+                      {getInitials(activeCompany?.name || 'Company')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {activeCompany?.name || 'Company'}
+                    </p>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add organization
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Bell className="h-4 w-4 mr-2" />
+                  Pause notifications
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <User className="h-4 w-4 mr-2" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Change account
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  await signOut()
+                  window.location.href = '/login'
+                }}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            
             <div className="flex items-center space-x-1">
               <Button variant="ghost" size="sm">
                 <Bell className="h-4 w-4" />
               </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>Sign out</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -283,7 +305,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
             <Collapsible open={isDirectMessagesOpen} onOpenChange={setIsDirectMessagesOpen}>
               <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-sm font-medium text-foreground hover:bg-accent rounded">
                 <div className="flex items-center space-x-2">
-                  <MessageSquare className="h-4 w-4" />
                   <span>Direct Messages</span>
                 </div>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isDirectMessagesOpen ? 'rotate-180' : ''}`} />
@@ -325,7 +346,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
             <Collapsible open={isGroupsOpen} onOpenChange={setIsGroupsOpen} className="mt-4">
               <CollapsibleTrigger className="flex items-center justify-between w-full p-2 text-sm font-medium text-foreground hover:bg-accent rounded">
                 <div className="flex items-center space-x-2">
-                  <Users className="h-4 w-4" />
                   <span>Groups</span>
                 </div>
                 <ChevronDown className={`h-4 w-4 transition-transform ${isGroupsOpen ? 'rotate-180' : ''}`} />
@@ -364,7 +384,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
       </div>
 
       {/* Main Area - Flexible */}
-      <div className={`${selectedConversation && !isMessageMinimized ? 'w-[400px]' : 'flex-1'} flex flex-col`}>
+      <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="bg-background border-b border-border p-4">
           <div className="flex items-center justify-between">
@@ -402,159 +422,222 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
           </div>
         </div>
 
-        {/* User Cards Grid */}
-        <ScrollArea className="flex-1 p-6">
-          <div className={`grid gap-4 ${selectedConversation && !isMessageMinimized ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-            {sortedMembers.map(member => (
-              <Card key={member.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={member.avatar_url} />
-                          <AvatarFallback>{getInitials(member.full_name)}</AvatarFallback>
-                        </Avatar>
+        {/* Content Area with Cards and Chat */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* User Cards Grid */}
+          <div className={`${selectedConversation && !isMessageMinimized ? 'w-[400px]' : 'flex-1'} flex flex-col`}>
+            <ScrollArea className="flex-1 p-6">
+              <div className={`grid gap-4 ${selectedConversation && !isMessageMinimized ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+                {sortedMembers.map(member => (
+                  <Card key={member.id} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="relative">
+                            <Avatar className="h-12 w-12">
+                              <AvatarImage src={member.avatar_url} />
+                              <AvatarFallback>{getInitials(member.full_name)}</AvatarFallback>
+                            </Avatar>
+                            <UserPresenceIndicator
+                              status={getUserStatus(member.user_id)}
+                              size="md"
+                              className="absolute bottom-1 -right-4"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base truncate">{member.full_name}</CardTitle>
+                            <CardDescription className="truncate">{member.email}</CardDescription>
+                          </div>
+                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleSendMessage(member.user_id)}>
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Send Message
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Users className="h-4 w-4 mr-2" />
+                              View Profile
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className="text-xs">
+                          {member.role}
+                        </Badge>
                         <UserPresenceIndicator
                           status={getUserStatus(member.user_id)}
-                          size="md"
-                          className="absolute bottom-1 -right-4"
+                          showText
+                          size="sm"
                         />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base truncate">{member.full_name}</CardTitle>
-                        <CardDescription className="truncate">{member.email}</CardDescription>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleSendMessage(member.user_id)}>
-                          <MessageSquare className="h-4 w-4 mr-2" />
-                          Send Message
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Users className="h-4 w-4 mr-2" />
-                          View Profile
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <Badge variant="outline" className="text-xs">
-                      {member.role}
-                    </Badge>
-                    <UserPresenceIndicator
-                      status={getUserStatus(member.user_id)}
-                      showText
-                      size="sm"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
-      </div>
-
-      {/* Conditional Chat Column */}
-      {selectedConversation && (
-        <div className={`${isMessageMinimized ? 'w-[300px]' : 'flex-1 min-w-0'} border-l border-border flex flex-col h-full overflow-hidden`}>
-          {/* Chat Header */}
-          <div className="bg-background border-b border-border px-4 py-[18px]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>JD</AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-medium">John Doe</h3>
-                </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
-              <div className="flex items-center space-x-1">
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsMessageMinimized(!isMessageMinimized)}
-                  title={isMessageMinimized ? "Expand" : "Minimize"}
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleCloseConversation}
-                  title="Close"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            </ScrollArea>
           </div>
 
-          {!isMessageMinimized && (
-            <>
-              {/* Pinned Messages */}
-              <div className="bg-neutral-800/50 border-b border-border p-4">
-                <div className="flex items-center space-x-2 text-sm text-white">
-                  <Pin className="h-4 w-4" />
-                  <span>2 pinned messages</span>
-                </div>
-              </div>
-
-              {/* Messages Area */}
-              <ScrollArea className="flex-1 p-4">
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
+          {/* Conditional Chat Column */}
+          {selectedConversation && (
+            <div className={`${isMessageMinimized ? 'w-[300px]' : 'flex-1 min-w-0'} border-l border-border flex flex-col overflow-hidden`}>
+              {/* Chat Header */}
+              <div className="bg-background border-b border-border px-4 py-[18px]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>JD</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <div className="bg-accent rounded-lg p-3">
-                        <p className="text-sm">Hey, how are you doing?</p>
+                    {!isMessageMinimized && (
+                      <div>
+                        <h3 className="font-medium">John Doe</h3>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">2:30 PM</p>
-                    </div>
+                    )}
                   </div>
-                  
-                  <div className="flex items-start space-x-3 justify-end">
-                    <div className="flex-1 text-right">
-                      <div className="bg-white text-black rounded-lg p-3 inline-block">
-                        <p className="text-sm">I'm doing great! Thanks for asking.</p>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">2:32 PM</p>
-                    </div>
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {getInitials(user?.user_metadata?.full_name || user?.email || 'U')}
-                      </AvatarFallback>
-                    </Avatar>
+                  <div className="flex items-center space-x-1">
+                    {!isMessageMinimized && (
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsMessageMinimized(!isMessageMinimized)}
+                      title={isMessageMinimized ? "Expand" : "Minimize"}
+                    >
+                      {isMessageMinimized ? <Maximize2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCloseConversation}
+                      title="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-              </ScrollArea>
-
-              {/* Message Input */}
-              <div className="bg-background border-t border-border p-4">
-                <div className="flex items-center space-x-2">
-                  <Input placeholder="Type a message..." className="flex-1 border border-border" />
-                  <Button size="sm">
-                    <Send className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
-            </>
+
+              {/* Chat Content - Always visible but responsive */}
+               {isMessageMinimized ? (
+                 /* Minimized View */
+                 <>
+                   {/* Pinned Messages - Minimized */}
+                   <div className="bg-neutral-800/50 border-b border-border p-4">
+                     <div className="flex items-center space-x-2 text-sm text-white">
+                       <Pin className="h-4 w-4 flex-shrink-0" />
+                       <span className="truncate">2 pinned messages</span>
+                     </div>
+                   </div>
+
+                   {/* Messages Area - Minimized */}
+                   <ScrollArea className="flex-1 p-4">
+                     <div className="space-y-4">
+                       <div className="flex items-start space-x-3">
+                         <Avatar className="h-8 w-8 flex-shrink-0">
+                           <AvatarFallback>JD</AvatarFallback>
+                         </Avatar>
+                         <div className="flex-1 min-w-0">
+                           <div className="bg-accent rounded-lg p-3">
+                             <p className="text-sm break-words">Hey, how are you doing?</p>
+                           </div>
+                           <p className="text-xs text-muted-foreground mt-1">2:30 PM</p>
+                         </div>
+                       </div>
+                       
+                       <div className="flex items-start space-x-3 justify-end">
+                         <div className="flex-1 text-right min-w-0">
+                           <div className="bg-white text-black rounded-lg p-3 inline-block max-w-full">
+                             <p className="text-sm break-words">I'm doing great! Thanks for asking.</p>
+                           </div>
+                           <p className="text-xs text-muted-foreground mt-1">2:32 PM</p>
+                         </div>
+                         <Avatar className="h-8 w-8 flex-shrink-0">
+                           <AvatarFallback>
+                             {getInitials(user?.user_metadata?.full_name || user?.email || 'U')}
+                           </AvatarFallback>
+                         </Avatar>
+                       </div>
+                     </div>
+                   </ScrollArea>
+
+                   {/* Message Input - Minimized */}
+                   <div className="bg-background border-t border-border p-4">
+                     <div className="flex items-center space-x-2">
+                       <Input placeholder="Type a message..." className="flex-1 border border-border" />
+                       <Button size="sm">
+                         <Send className="h-4 w-4" />
+                       </Button>
+                     </div>
+                   </div>
+                 </>
+               ) : (
+                /* Expanded View */
+                <>
+                  {/* Pinned Messages */}
+                   <div className="bg-neutral-800/50 border-b border-border p-4">
+                     <div className="flex items-center space-x-2 text-sm text-white">
+                       <Pin className="h-4 w-4 flex-shrink-0" />
+                       <span className="truncate">2 pinned messages</span>
+                     </div>
+                   </div>
+
+                  {/* Messages Area */}
+                   <ScrollArea className="flex-1 p-4">
+                     <div className="space-y-4">
+                       <div className="flex items-start space-x-3">
+                         <Avatar className="h-8 w-8 flex-shrink-0">
+                           <AvatarFallback>JD</AvatarFallback>
+                         </Avatar>
+                         <div className="flex-1 min-w-0">
+                           <div className="bg-accent rounded-lg p-3">
+                             <p className="text-sm break-words">Hey, how are you doing?</p>
+                           </div>
+                           <p className="text-xs text-muted-foreground mt-1">2:30 PM</p>
+                         </div>
+                       </div>
+                       
+                       <div className="flex items-start space-x-3 justify-end">
+                         <div className="flex-1 text-right min-w-0">
+                           <div className="bg-white text-black rounded-lg p-3 inline-block max-w-full">
+                             <p className="text-sm break-words">I'm doing great! Thanks for asking.</p>
+                           </div>
+                           <p className="text-xs text-muted-foreground mt-1">2:32 PM</p>
+                         </div>
+                         <Avatar className="h-8 w-8 flex-shrink-0">
+                           <AvatarFallback>
+                             {getInitials(user?.user_metadata?.full_name || user?.email || 'U')}
+                           </AvatarFallback>
+                         </Avatar>
+                       </div>
+                     </div>
+                   </ScrollArea>
+
+                  {/* Message Input */}
+                  <div className="bg-background border-t border-border p-4">
+                    <div className="flex items-center space-x-2">
+                      <Input placeholder="Type a message..." className="flex-1 border border-border" />
+                      <Button size="sm">
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

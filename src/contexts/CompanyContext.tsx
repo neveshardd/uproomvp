@@ -46,9 +46,12 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
 
   // Load user companies when user changes
   useEffect(() => {
+    console.log('🔍 CompanyContext: useEffect triggered, user:', user?.id)
     if (user) {
+      console.log('🔍 CompanyContext: User exists, calling loadUserCompanies')
       loadUserCompanies()
     } else {
+      console.log('🔍 CompanyContext: No user, clearing state')
       // Clear state when user logs out
       setCurrentCompany(null)
       setUserCompanies([])
@@ -69,16 +72,21 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
   }, [profile?.current_company_id, userCompanies])
 
   const loadUserCompanies = async () => {
+    console.log('🔍 CompanyContext: loadUserCompanies called')
     setIsLoading(true)
     try {
+      console.log('🔍 CompanyContext: Calling CompanyService.getUserCompanies()')
       const { companies, error } = await CompanyService.getUserCompanies()
+      console.log('🔍 CompanyContext: getUserCompanies result:', { companies, error })
       if (error) {
         console.error('Error loading companies:', error)
       } else {
+        console.log('🔍 CompanyContext: Setting userCompanies to:', companies)
         setUserCompanies(companies)
         
         // If user has companies but no current company set, set the first one
         if (companies.length > 0 && !profile?.current_company_id) {
+          console.log('🔍 CompanyContext: Switching to first company:', companies[0].id)
           await switchCompany(companies[0].id)
         }
       }

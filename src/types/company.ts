@@ -7,6 +7,7 @@ export interface Company {
   description?: string
   logo_url?: string
   website_url?: string
+  owner_id: string
   created_at: string
   updated_at: string
   members?: CompanyMember[]

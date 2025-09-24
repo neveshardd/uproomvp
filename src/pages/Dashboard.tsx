@@ -12,13 +12,15 @@ const Dashboard = () => {
   const { user, signOut } = useAuth()
   const { currentCompany, userCompanies, userRole, isLoading } = useCompany()
 
-  // Redirect users with company associations to their company workspace
-  useEffect(() => {
-    if (!isLoading && currentCompany) {
-      // Redirect to the company's subdomain workspace
-      window.location.href = `${window.location.protocol}//${currentCompany.subdomain}.${window.location.host}`
-    }
-  }, [currentCompany, isLoading])
+  console.log('🔍 Dashboard: Rendering with state:', {
+    user: user?.id,
+    currentCompany: currentCompany?.id,
+    userCompaniesCount: userCompanies.length,
+    userRole,
+    isLoading
+  })
+
+  // Note: Removed automatic redirection to allow users to see their companies on main domain
 
   const handleSignOut = async () => {
     await signOut()
@@ -74,7 +76,7 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!currentCompany ? (
+        {!currentCompany && userCompanies.length === 0 ? (
           // No Company State
           <div className="text-center py-12">
             <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -91,6 +93,77 @@ const Dashboard = () => {
                 <Link className="h-4 w-4 mr-2" />
                 Join by Link
               </Button>
+            </div>
+          </div>
+        ) : userCompanies.length > 0 && !currentCompany ? (
+          // User has companies but none selected - show company selection
+          <div className="space-y-8">
+            <div className="text-center">
+              <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-foreground mb-2">Your Workspaces</h2>
+              <p className="text-muted-foreground mb-8">
+                Choose a workspace to continue, or create a new one.
+              </p>
+            </div>
+            
+            {/* Company Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {userCompanies.map((company) => (
+                <Card key={company.id} className="bg-card/50 border-border/40 hover:bg-card/70 transition-colors">
+                  <CardHeader className="text-center">
+                    <div className="mx-auto mb-4">
+                      {company.logo_url ? (
+                        <img 
+                          src={company.logo_url} 
+                          alt={`${company.name} logo`}
+                          className="h-16 w-16 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Building2 className="h-8 w-8 text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <CardTitle className="text-lg text-foreground">{company.name}</CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                      {company.description || `${company.subdomain}.uproom.com`}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="text-center space-y-4">
+                    <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-1" />
+                        {company.members?.length || 0} members
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        window.location.href = `${window.location.protocol}//${company.subdomain}.${window.location.host}/login`
+                      }}
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      Go to Workspace
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            {/* Create New Company Option */}
+            <div className="text-center pt-8">
+              <Card className="bg-card/30 border-border/40 border-dashed hover:bg-card/50 transition-colors">
+                <CardContent className="py-8">
+                  <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">Create New Workspace</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Start a new company workspace for your team.
+                  </p>
+                  <Button onClick={() => navigate('/create-company')} variant="outline" className="border-border/60 text-foreground hover:bg-muted">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Company
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           </div>
         ) : (

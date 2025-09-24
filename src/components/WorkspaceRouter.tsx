@@ -110,14 +110,14 @@ const WorkspaceLoginPrompt: React.FC<{ company: any }> = ({ company }) => {
       <CardContent className="space-y-4">
         <Button 
           className="w-full" 
-          onClick={() => window.location.href = '/login'}
+          onClick={() => window.location.href = `${window.location.protocol}//${window.location.host}/login`}
         >
           Sign In
         </Button>
         <Button 
           variant="outline" 
           className="w-full"
-          onClick={() => window.location.href = '/register'}
+          onClick={() => window.location.href = `${window.location.protocol}//${window.location.host}/register`}
         >
           Create Account
         </Button>

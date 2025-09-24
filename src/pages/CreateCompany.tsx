@@ -82,8 +82,8 @@ const CreateCompany: React.FC = () => {
       if (result.error) {
         setError(result.error)
       } else {
-        // Redirect to the company's subdomain workspace
-        window.location.href = `${window.location.protocol}//${data.subdomain}.${window.location.host}`
+        // Redirect to the company's subdomain login page
+        window.location.href = `${window.location.protocol}//${data.subdomain}.${window.location.host}/login`
       }
     } catch (error) {
       console.error('Error creating company:', error)

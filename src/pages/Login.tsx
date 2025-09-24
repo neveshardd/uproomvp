@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { useRateLimit } from '@/hooks/useRateLimit'
+import { useSubdomain } from '@/hooks/useSubdomain'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -26,6 +27,7 @@ const Login = () => {
   const { signIn } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  const { subdomain, company, isValidWorkspace } = useSubdomain()
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -85,7 +87,17 @@ const Login = () => {
             title: 'Welcome back!',
             description: 'You have successfully logged in.',
           })
-          navigate('/dashboard')
+          
+          // Check if we're on a subdomain - if so, stay on subdomain after login
+          if (subdomain && company && isValidWorkspace) {
+            // Use a simple timeout to ensure the auth state is fully updated
+            setTimeout(() => {
+              window.location.href = `${window.location.protocol}//${window.location.host}/`
+            }, 100)
+          } else {
+            // On main domain, redirect to dashboard
+            navigate('/dashboard')
+          }
         },
         (error) => {
           toast({

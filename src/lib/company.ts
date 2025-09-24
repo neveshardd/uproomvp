@@ -73,8 +73,8 @@ export class CompanyService {
             name,
             subdomain,
             description,
-            logo_url,
-            website_url,
+            avatar_url,
+            settings,
             created_at,
             updated_at
           )
