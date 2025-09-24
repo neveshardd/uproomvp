@@ -95,7 +95,7 @@ const SubdomainChecker: React.FC<SubdomainCheckerProps> = ({
     <div className={cn('space-y-2', className)}>
       <div className="relative">
         <div className="flex">
-          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-background text-gray-500 text-sm">
+          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-neutral-800 text-gray-500 text-sm">
             https://
           </span>
           <input
@@ -103,12 +103,12 @@ const SubdomainChecker: React.FC<SubdomainCheckerProps> = ({
             value={value}
             onChange={(e) => onChange(e.target.value)}
             className={cn(
-              'flex-1 min-w-0 block w-full px-3 py-2 rounded-none border focus:ring-blue-500 focus:border-neutral-500 text-sm',
+              'flex-1 min-w-0 block w-full px-3 py-2 rounded-none border focus:ring-blue-500 focus:border-neutral-500 text-sm bg-neutral-800',
               getStatusColor()
             )}
             placeholder="your-company"
           />
-          <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-background text-gray-500 text-sm">
+          <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-neutral-800 text-gray-500 text-sm">
             .uproom.com
           </span>
           <div className="absolute right-2 top-1/2 transform -translate-y-1/2 mr-24">

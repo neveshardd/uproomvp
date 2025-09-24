@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { ArrowLeft, Building2, Loader2, LogOut } from 'lucide-react'
+import { ArrowLeft, Building2, Loader2, LogOut, Plus } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
@@ -112,16 +112,8 @@ const CreateCompany: React.FC = () => {
                 className="text-muted-foreground hover:text-foreground"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
+                Back
               </Button>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Uproom
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Create your workspace
-                </p>
-              </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
@@ -144,13 +136,9 @@ const CreateCompany: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
-          {/* Welcome Section */}
-          <div className="text-center">
-            <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-foreground mb-2">Create Your Company</h2>
-            <p className="text-muted-foreground">
-              Set up your company workspace and get started with your team
-            </p>
+          {/* Create Your Company Title */}
+          <div className="w-full text-left">
+            <h2 className="text-2xl font-bold text-foreground">Create Your Company</h2>
           </div>
 
           {/* Form */}
@@ -158,9 +146,6 @@ const CreateCompany: React.FC = () => {
             <Card className="bg-card/50 border-border/40">
               <CardHeader>
                 <CardTitle className="text-foreground">Company Information</CardTitle>
-                <CardDescription className="text-muted-foreground">
-                  Tell us about your company to create your workspace
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -186,6 +171,12 @@ const CreateCompany: React.FC = () => {
                       onChange={(value) => setValue('subdomain', value)}
                       onValidationChange={handleSubdomainValidation}
                     />
+                    <p className="text-sm text-muted-foreground">
+                      Once created, your team will be able to access your workspace at{' '}
+                      <span className="font-mono bg-muted px-1 py-0.5 rounded text-foreground">
+                        {watchedSubdomain || 'your-company'}.uproom.com
+                      </span>
+                    </p>
                     {errors.subdomain && (
                       <p className="text-sm text-red-600">{errors.subdomain.message}</p>
                     )}
@@ -202,14 +193,14 @@ const CreateCompany: React.FC = () => {
                     />
                   </div>
 
-                  {/* Error Alert */}
                   {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
+                    <Alert className="border-red-200 bg-red-50">
+                      <AlertDescription className="text-red-800">
+                        {error}
+                      </AlertDescription>
                     </Alert>
                   )}
 
-                  {/* Submit Button */}
                   <Button
                     type="submit"
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -222,26 +213,12 @@ const CreateCompany: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <Building2 className="h-4 w-4 mr-2" />
+                        <Plus className="h-4 w-4 mr-2" />
                         Create Company
                       </>
                     )}
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-
-            {/* Info Card */}
-            <Card className="mt-6 bg-card/50 border-border/40">
-              <CardContent className="pt-6">
-                <div className="text-center text-sm text-muted-foreground">
-                  <p>
-                    Once created, your team will be able to access your workspace at{' '}
-                    <span className="font-mono bg-muted px-1 py-0.5 rounded text-foreground">
-                      {watchedSubdomain || 'your-company'}.uproom.com
-                    </span>
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>

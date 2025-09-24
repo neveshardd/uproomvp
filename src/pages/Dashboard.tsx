@@ -98,12 +98,12 @@ const Dashboard = () => {
         ) : userCompanies.length > 0 && !currentCompany ? (
           // User has companies but none selected - show company selection
           <div className="space-y-8">
-            <div className="text-center">
-              <Building2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">Your Workspaces</h2>
-              <p className="text-muted-foreground mb-8">
-                Choose a workspace to continue, or create a new one.
-              </p>
+            <div className="flex justify-between items-center w-full">
+              <h2 className="text-2xl font-bold text-foreground text-left">Your Workspaces</h2>
+              <Button onClick={() => navigate('/create-company')} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Company
+              </Button>
             </div>
             
             {/* Company Cards Grid */}
@@ -147,23 +147,6 @@ const Dashboard = () => {
                   </CardContent>
                 </Card>
               ))}
-            </div>
-            
-            {/* Create New Company Option */}
-            <div className="text-center pt-8">
-              <Card className="bg-card/30 border-border/40 border-dashed hover:bg-card/50 transition-colors">
-                <CardContent className="py-8">
-                  <Plus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-foreground mb-2">Create New Workspace</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Start a new company workspace for your team.
-                  </p>
-                  <Button onClick={() => navigate('/create-company')} variant="outline" className="border-border/60 text-foreground hover:bg-muted">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Company
-                  </Button>
-                </CardContent>
-              </Card>
             </div>
           </div>
         ) : (

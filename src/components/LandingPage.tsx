@@ -26,8 +26,32 @@ const LandingPage = () => {
     navigate('/register');
   };
 
+  const handleLogin = () => {
+    navigate('/login');
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="relative z-20 border-b border-border/40 bg-card/50 backdrop-blur-sm">
+        <div className="container mx-auto px-6">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <h1 className="text-xl font-semibold text-foreground">
+                Uproom
+              </h1>
+            </div>
+            <Button 
+              variant="secondary" 
+              onClick={handleLogin}
+              className="bg-transparent border border-neutral-700 text-white rounded-md hover:bg-neutral-800"
+            >
+              Login
+            </Button>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div 

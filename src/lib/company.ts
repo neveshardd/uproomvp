@@ -76,7 +76,8 @@ export class CompanyService {
             avatar_url,
             settings,
             created_at,
-            updated_at
+            updated_at,
+            owner_id
           )
         `)
         .eq('user_id', user.id)
@@ -87,8 +88,32 @@ export class CompanyService {
         return { companies: [], error: error.message }
       }
 
-      // Transform the data to match the expected Company type
-      const companies: Company[] = data?.map((item: any) => item.companies).filter(Boolean) || []
+      // Transform the data and add member counts
+      const companies: Company[] = []
+      
+      for (const item of data || []) {
+        if (!item.companies) continue
+        
+        // Get member count for this company
+        const { count: memberCount, error: countError } = await supabase
+          .from('company_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', item.companies.id)
+          .eq('is_active', true)
+
+        if (countError) {
+          console.error('Error fetching member count:', countError)
+        }
+
+        // Create company object with member count
+        const company: Company = {
+          ...item.companies,
+          members: Array(memberCount || 0).fill(null) // Create array with correct length for count
+        }
+        
+        companies.push(company)
+      }
+
       return { companies, error: null }
     } catch (error) {
       console.error('Unexpected error fetching companies:', error)
