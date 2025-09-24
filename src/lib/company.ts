@@ -94,11 +94,24 @@ export class CompanyService {
       for (const item of data || []) {
         if (!item.companies) continue
         
+        // Safely extract company data with proper typing
+        const companyData = item.companies as unknown as {
+          id: string
+          name: string
+          subdomain: string
+          description: string | null
+          avatar_url: string | null
+          settings: any
+          created_at: string
+          updated_at: string
+          owner_id: string
+        }
+        
         // Get member count for this company
         const { count: memberCount, error: countError } = await supabase
           .from('company_members')
           .select('*', { count: 'exact', head: true })
-          .eq('company_id', item.companies.id)
+          .eq('company_id', companyData.id)
           .eq('is_active', true)
 
         if (countError) {
@@ -107,7 +120,7 @@ export class CompanyService {
 
         // Create company object with member count
         const company: Company = {
-          ...item.companies,
+          ...companyData,
           members: Array(memberCount || 0).fill(null) // Create array with correct length for count
         }
         

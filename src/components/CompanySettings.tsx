@@ -255,7 +255,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ companyId }) => {
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Company Name *</Label>
+                    <Label htmlFor="name">Company Name</Label>
                     <Input
                       id="name"
                       {...register('name')}
@@ -268,7 +268,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ companyId }) => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="subdomain">Subdomain *</Label>
+                    <Label htmlFor="subdomain">Subdomain</Label>
                     <div className="flex items-center space-x-2">
                       <Input
                         id="subdomain"

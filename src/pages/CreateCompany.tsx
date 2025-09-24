@@ -52,16 +52,17 @@ const CreateCompany: React.FC = () => {
 
   // Auto-generate subdomain from company name
   React.useEffect(() => {
-    if (watchedName && !watchedSubdomain) {
+    if (watchedName) {
       const generated = watchedName
         .toLowerCase()
+        .replace(/\s+/g, '') // Remove all spaces
         .replace(/[^a-z0-9]/g, '-')
         .replace(/-+/g, '-')
         .replace(/^-|-$/g, '')
         .substring(0, 30)
       setValue('subdomain', generated)
     }
-  }, [watchedName, watchedSubdomain, setValue])
+  }, [watchedName, setValue])
 
   const onSubmit = async (data: CreateCompanyForm) => {
     if (!subdomainValid || !subdomainAvailable) {
@@ -151,7 +152,7 @@ const CreateCompany: React.FC = () => {
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                   {/* Company Name */}
                   <div className="space-y-2">
-                    <Label htmlFor="name" className="text-foreground">Company Name *</Label>
+                    <Label htmlFor="name" className="text-foreground">Company Name</Label>
                     <Input
                       id="name"
                       {...register('name')}
@@ -165,7 +166,7 @@ const CreateCompany: React.FC = () => {
 
                   {/* Subdomain */}
                   <div className="space-y-2">
-                    <Label htmlFor="subdomain" className="text-foreground">Workspace URL *</Label>
+                    <Label htmlFor="subdomain" className="text-foreground">Workspace URL</Label>
                     <SubdomainChecker
                       value={watchedSubdomain || ''}
                       onChange={(value) => setValue('subdomain', value)}

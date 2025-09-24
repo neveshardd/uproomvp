@@ -111,7 +111,7 @@ const SubdomainChecker: React.FC<SubdomainCheckerProps> = ({
           <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-neutral-800 text-gray-500 text-sm">
             .uproom.com
           </span>
-          <div className="absolute right-2 top-1/2 transform -translate-y-1/2 mr-24">
+          <div className="absolute right-6 top-1/2 transform -translate-y-1/2 mr-24">
             {getStatusIcon()}
           </div>
         </div>
@@ -127,14 +127,7 @@ const SubdomainChecker: React.FC<SubdomainCheckerProps> = ({
         </p>
       )}
 
-      {/* Preview URL */}
-      {getPreviewUrl() && validation?.isValid && validation?.isAvailable && (
-        <p className="text-sm text-gray-600">
-          Your workspace will be available at:{' '}
-          <span className="font-mono text-blue-600">{getPreviewUrl()}</span>
-        </p>
-      )}
-
+      {/* Preview URL - Removed as requested */}
       {/* Alternative suggestions */}
       {alternatives.length > 0 && (
         <div className="space-y-2">
