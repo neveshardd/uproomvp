@@ -25,7 +25,8 @@ import {
   Pin,
   Send,
   User,
-  LogOut
+  LogOut,
+  UserPlus
 } from 'lucide-react'
 import {
   DropdownMenu,
@@ -44,6 +45,7 @@ import StatusSelector from './StatusSelector'
 import UserPresenceIndicator from './UserPresenceIndicator'
 import { usePresence } from '../hooks/usePresence'
 import ChatInterface from './ChatInterface'
+import InvitePeopleModal from './InvitePeopleModal'
 
 interface MainDashboardProps {
   companyId?: string
@@ -112,6 +114,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
   const [isDirectMessagesOpen, setIsDirectMessagesOpen] = useState(true)
   const [isGroupsOpen, setIsGroupsOpen] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false)
 
   useEffect(() => {
     if (activeCompanyId) {
@@ -259,6 +262,11 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
+                <DropdownMenuItem onClick={() => setIsInviteModalOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite People
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <Plus className="h-4 w-4 mr-2" />
                   Add organization
@@ -638,6 +646,12 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ companyId, company, userR
           )}
         </div>
       </div>
+
+      {/* Invite People Modal */}
+      <InvitePeopleModal 
+        open={isInviteModalOpen} 
+        onOpenChange={setIsInviteModalOpen} 
+      />
     </div>
   )
 }

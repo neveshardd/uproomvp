@@ -190,9 +190,7 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
         .from('user_status')
         .select('*')
         .eq('user_id', user.id)
-        .eq('company_id', selectedCompany)
-        .order('created_at', { ascending: false })
-        .limit(1)
+        .eq('is_latest', true)
         .single()
 
       if (error && error.code !== 'PGRST116') {
@@ -201,12 +199,43 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
 
       if (data) {
         setCurrentStatus(data)
-        setSelectedStatus(data.status_type)
-        setCustomMessage(data.status_message || '')
-        setIsToggleOn(data.status_type !== 'offline')
+        setSelectedStatus(data.status)
+        setCustomMessage(data.custom_message || '')
+        setIsToggleOn(data.status !== 'offline')
+      } else {
+        // No status found, create default offline status
+        await createDefaultStatus()
       }
     } catch (err: any) {
       console.error('Error fetching current status:', err)
+      // Create default status if none exists
+      await createDefaultStatus()
+    }
+  }
+
+  const createDefaultStatus = async () => {
+    if (!user || !selectedCompany) return
+
+    try {
+      const { data, error } = await supabase
+        .from('user_status')
+        .insert({
+          user_id: user.id,
+          status: 'offline',
+          custom_message: 'Finished for today',
+          is_latest: true
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setCurrentStatus(data)
+      setSelectedStatus('offline')
+      setCustomMessage('Finished for today')
+      setIsToggleOn(false)
+    } catch (err: any) {
+      console.error('Error creating default status:', err)
     }
   }
 
@@ -219,33 +248,40 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
   }
 
   const handleUpdateStatus = async () => {
-    if (!selectedStatus || !selectedCompany || !user) {
-      setError('Please select a status and company')
-      return
-    }
+    if (!user || !selectedCompany) return
 
     setLoading(true)
     setError('')
     setSuccess('')
 
     try {
+      // Update status using realtime service
       await realtimeService.updateUserStatus(
         selectedStatus as UserStatus['status'], 
         customMessage || undefined
       )
 
-      setSuccess('Status updated successfully!')
-      await fetchCurrentStatus()
-      
-      if (onStatusUpdate) {
-        onStatusUpdate()
+      // Update local state
+      const newStatus = {
+        user_id: user.id,
+        status: selectedStatus,
+        custom_message: customMessage,
+        is_latest: true,
+        created_at: new Date().toISOString()
       }
-
+      
+      setCurrentStatus(newStatus)
+      setIsToggleOn(selectedStatus !== 'offline')
+      setSuccess('Status updated successfully!')
+      
+      // Close the selector after a brief delay
       setTimeout(() => {
-        setSuccess('')
         setIsOpen(false)
+        setSuccess('')
       }, 1500)
+
     } catch (err: any) {
+      console.error('Error updating status:', err)
       setError(err.message || 'Failed to update status')
     } finally {
       setLoading(false)

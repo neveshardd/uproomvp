@@ -155,12 +155,7 @@ export class RealtimeService {
 
   // Subscribe to status updates for company members
   subscribeToCompanyStatus(companyId?: string): RealtimeChannel {
-    const targetCompanyId = companyId || this.currentCompanyId
-    if (!targetCompanyId) {
-      throw new Error('No company ID available for status subscription')
-    }
-
-    const channelName = `company_status:${targetCompanyId}`
+    const channelName = `user_status_updates`
     
     if (this.channels.has(channelName)) {
       return this.channels.get(channelName)!
@@ -173,8 +168,7 @@ export class RealtimeService {
         {
           event: '*',
           schema: 'public',
-          table: 'user_status',
-          filter: `company_id=eq.${targetCompanyId}`
+          table: 'user_status'
         },
         (payload: RealtimePostgresChangesPayload<UserStatus>) => {
           this.handleStatusChange(payload)
@@ -369,19 +363,12 @@ export class RealtimeService {
 
   // Update user online status
   async updateOnlineStatus(isOnline: boolean) {
-    if (!this.currentUserId || !this.currentCompanyId) return
+    if (!this.currentUserId) return
 
-    const { error } = await supabase
-      .from('user_status')
-      .upsert({
-        user_id: this.currentUserId,
-        company_id: this.currentCompanyId,
-        is_online: isOnline,
-        last_activity_at: new Date().toISOString()
-      })
-
-    if (error) {
-      console.error('Error updating online status:', error)
+    // This function can be used for presence tracking
+    // For now, we'll just update the user status to reflect online/offline
+    if (!isOnline) {
+      await this.updateUserStatus('offline', 'User went offline')
     }
   }
 
@@ -411,19 +398,17 @@ export class RealtimeService {
 
   // Update user status
   async updateUserStatus(status: UserStatus['status'], customMessage?: string) {
-    if (!this.currentUserId || !this.currentCompanyId) {
-      throw new Error('User must be authenticated and have a company to update status')
+    if (!this.currentUserId) {
+      throw new Error('User must be authenticated to update status')
     }
 
     const { data, error } = await supabase
       .from('user_status')
-      .upsert({
+      .insert({
         user_id: this.currentUserId,
-        company_id: this.currentCompanyId,
         status,
         custom_message: customMessage,
-        is_online: status !== 'offline',
-        last_activity_at: new Date().toISOString()
+        is_latest: true
       })
       .select()
       .single()
