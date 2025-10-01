@@ -455,4 +455,86 @@ export async function companyRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({ error: 'Erro interno', details: (error as Error).message });
     }
   });
+
+  // Get company members
+  fastify.get('/:id/members', {
+    preHandler: authenticateUser,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+      const userId = request.user.id;
+
+      // Verificar se o usuário é membro da empresa
+      const membership = await prisma.companyMember.findFirst({
+        where: {
+          companyId: id,
+          userId,
+        },
+      });
+
+      if (!membership) {
+        return reply.status(403).send({ error: 'Acesso negado' });
+      }
+
+      const members = await prisma.companyMember.findMany({
+        where: { companyId: id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+
+      return { members };
+    } catch (error) {
+      console.error('Error getting company members:', error);
+      return reply.status(500).send({ error: 'Erro interno' });
+    }
+  });
+
+  // Get user role in company
+  fastify.get('/:id/members/:userId/role', {
+    preHandler: authenticateUser,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id, userId } = request.params as { id: string; userId: string };
+      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+      const authenticatedUserId = request.user.id;
+
+      // Verificar se o usuário autenticado é membro da empresa
+      const membership = await prisma.companyMember.findFirst({
+        where: {
+          companyId: id,
+          userId: authenticatedUserId,
+        },
+      });
+
+      if (!membership) {
+        return reply.status(403).send({ error: 'Acesso negado' });
+      }
+
+      // Buscar o role do usuário solicitado
+      const userMembership = await prisma.companyMember.findFirst({
+        where: {
+          companyId: id,
+          userId,
+        },
+      });
+
+      if (!userMembership) {
+        return reply.status(404).send({ error: 'Usuário não é membro desta empresa' });
+      }
+
+      return { role: userMembership.role };
+    } catch (error) {
+      console.error('Error getting user role:', error);
+      return reply.status(500).send({ error: 'Erro interno' });
+    }
+  });
 }

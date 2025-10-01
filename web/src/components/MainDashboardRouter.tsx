@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useSubdomain } from '@/hooks/useSubdomain'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCompany } from '@/contexts/CompanyContext'
@@ -13,6 +13,7 @@ const MainDashboardRouter: React.FC = () => {
   const { subdomain, company, isLoading, isValidWorkspace } = useSubdomain()
   const { user } = useAuth()
   const { currentCompany, userCompanies, isLoading: companyLoading } = useCompany()
+  const [setupTimeout, setSetupTimeout] = useState(false)
 
   useEffect(() => {
     // If we're on a subdomain and user is authenticated, they should use their workspace
@@ -29,6 +30,18 @@ const MainDashboardRouter: React.FC = () => {
     // Removed the automatic redirect for main domain users with currentCompany
     // This allows authenticated organization members to access /maindashboard and see all their workspaces
   }, [isLoading, companyLoading, subdomain, isValidWorkspace, company, user, userCompanies, currentCompany])
+
+  // Timeout for setup loading
+  useEffect(() => {
+    if (!currentCompany && userCompanies.length > 0) {
+      const timeout = setTimeout(() => {
+        console.log('🔍 MainDashboardRouter: Setup timeout reached')
+        setSetupTimeout(true)
+      }, 5000) // 5 seconds timeout
+
+      return () => clearTimeout(timeout)
+    }
+  }, [currentCompany, userCompanies.length])
 
   // Show loading while checking subdomain and company status
   if (isLoading || companyLoading) {
@@ -64,7 +77,7 @@ const MainDashboardRouter: React.FC = () => {
             <div className="flex flex-col space-y-2">
               <Button 
                 onClick={() => {
-                  window.location.href = SubdomainService.getWorkspaceUrl(subdomain)
+                  window.location.href = `${window.location.protocol}//${window.location.host}/`
                 }}
                 className="w-full"
               >
@@ -72,7 +85,10 @@ const MainDashboardRouter: React.FC = () => {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => window.location.href = `${window.location.protocol}//${window.location.host.split('.').slice(-2).join('.')}`}
+                onClick={() => {
+                  const mainDomain = window.location.host.split('.').slice(-2).join('.')
+                  window.location.href = `${window.location.protocol}//${mainDomain}/maindashboard`
+                }}
                 className="w-full"
               >
                 <Home className="mr-2 h-4 w-4" />
@@ -109,34 +125,11 @@ const MainDashboardRouter: React.FC = () => {
     )
   }
 
+  // Fallback: Se não há empresas, redireciona automaticamente para criação
   if (!currentCompany && userCompanies.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>No Organization Found</CardTitle>
-            <CardDescription>
-              You need to belong to an organization to access the main dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button 
-              className="w-full" 
-              onClick={() => window.location.href = '/create-company'}
-            >
-              Create Organization
-            </Button>
-            <Button 
-              variant="outline"
-              className="w-full" 
-              onClick={() => window.location.href = '/join-company-by-link'}
-            >
-              Join Organization
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
+    // Redireciona automaticamente para a página de criação de empresa
+    window.location.href = '/create-company'
+    return null
   }
 
   // If user has multiple companies, show workspace selection
@@ -148,9 +141,67 @@ const MainDashboardRouter: React.FC = () => {
     )
   }
 
+  // If no current company is set but user has companies, wait a bit for CompanyContext to set it
+  if (!currentCompany && userCompanies.length > 0 && !setupTimeout) {
+    // Give CompanyContext time to set the current company
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-600 mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">Setting up your workspace...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If timeout reached, show workspace selection
+  if (!currentCompany && userCompanies.length > 0 && setupTimeout) {
+    return (
+      <ProtectedRoute>
+        <WorkspaceSelection userCompanies={userCompanies} />
+      </ProtectedRoute>
+    )
+  }
+
+  // Final safety check
+  if (!currentCompany) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>No Workspace Selected</CardTitle>
+            <CardDescription>
+              Please select a workspace to continue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              className="w-full" 
+              onClick={() => window.location.href = '/create-company'}
+            >
+              Create Workspace
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <ProtectedRoute>
-      <MainDashboard companyId={currentCompany.id} company={currentCompany} />
+      <MainDashboard 
+        companyId={currentCompany.id} 
+        company={{
+          id: currentCompany.id,
+          name: currentCompany.name,
+          subdomain: currentCompany.subdomain,
+          description: currentCompany.description,
+          owner_id: (currentCompany as any).ownerId,
+          created_at: (currentCompany as any).createdAt instanceof Date 
+            ? (currentCompany as any).createdAt.toISOString()
+            : new Date((currentCompany as any).createdAt).toISOString()
+        }} 
+      />
     </ProtectedRoute>
   )
 }

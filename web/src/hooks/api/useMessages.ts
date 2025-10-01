@@ -42,7 +42,7 @@ export const useMessages = (conversationId: string, page = 1, limit = 50) => {
   return useQuery<MessagesResponse>({
     queryKey: ['messages', conversationId, page, limit],
     queryFn: async () => {
-      const response = await api.get(`/api/messages/conversation/${conversationId}`, {
+      const response = await api.get(`/messages/conversation/${conversationId}`, {
         params: { page, limit },
       });
       return response.data;
@@ -55,7 +55,7 @@ export const useMessage = (id: string) => {
   return useQuery<Message>({
     queryKey: ['messages', id],
     queryFn: async () => {
-      const response = await api.get(`/api/messages/${id}`);
+      const response = await api.get(`/messages/${id}`);
       return response.data.message;
     },
     enabled: !!id,
@@ -67,7 +67,7 @@ export const useCreateMessage = () => {
 
   return useMutation({
     mutationFn: async (data: CreateMessageData) => {
-      const response = await api.post('/api/messages', data);
+      const response = await api.post('/messages', data);
       return response.data.message;
     },
     onSuccess: (message) => {
@@ -87,7 +87,7 @@ export const useUpdateMessage = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateMessageData }) => {
-      const response = await api.put(`/api/messages/${id}`, data);
+      const response = await api.put(`/messages/${id}`, data);
       return response.data.message;
     },
     onSuccess: (message) => {
@@ -102,7 +102,7 @@ export const useDeleteMessage = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.delete(`/api/messages/${id}`);
+      const response = await api.delete(`/messages/${id}`);
       return response.data;
     },
     onSuccess: (_, messageId) => {

@@ -1,6 +1,19 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-import { User, Session } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import { CrossDomainAuth } from '@/lib/cross-domain-auth'
+
+interface User {
+  id: string
+  email: string
+  fullName?: string
+  avatar?: string
+}
+
+interface Session {
+  access_token: string
+  refresh_token: string
+  expires_at: number
+  user: User
+}
 
 interface AuthContextType {
   user: User | null
@@ -19,6 +32,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const useAuth = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {
+    // In development, this might happen during hot reload
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('useAuth called outside of AuthProvider - this might be due to hot reload')
+      // Return a default context to prevent crashes
+      return {
+        user: null,
+        profile: null,
+        session: null,
+        loading: true,
+        signIn: async () => ({ error: 'Not authenticated' }),
+        signUp: async () => ({ error: 'Not authenticated' }),
+        signOut: async () => {},
+        resetPassword: async () => ({ error: 'Not authenticated' }),
+        updatePassword: async () => ({ error: 'Not authenticated' }),
+      } as AuthContextType
+    }
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
@@ -28,6 +57,8 @@ interface AuthProviderProps {
   children: React.ReactNode
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3333'
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<any | null>(null)
@@ -35,137 +66,202 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session from Supabase
+    // Get initial session using cross-domain auth
     const getInitialSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
-        if (error) {
-          console.error('Error getting session:', error)
-        } else if (session) {
-          setSession(session)
-          setUser(session.user)
+        const token = CrossDomainAuth.getAuthToken()
+        if (token) {
+          const response = await fetch(`${API_URL}/auth/profile`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            setUser(data.user)
+            setProfile(data.user)
+            
+            // Reconstruct session from token
+            const sessionData = {
+              access_token: token,
+              refresh_token: '', // We'll handle this if needed
+              expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+              user: data.user
+            }
+            setSession(sessionData)
+          } else {
+            // Token is invalid, check if we're on a subdomain
+            if (CrossDomainAuth.isSubdomain()) {
+              // On subdomain without valid token, redirect to main domain for auth
+              CrossDomainAuth.redirectToMainDomainForAuth()
+              return
+            } else {
+              // On main domain, just remove invalid token
+              CrossDomainAuth.clearAuthToken()
+            }
+          }
+        } else {
+          // No token, check if we're on a subdomain
+          if (CrossDomainAuth.isSubdomain()) {
+            // On subdomain without token, redirect to main domain for auth
+            CrossDomainAuth.redirectToMainDomainForAuth()
+            return
+          }
         }
       } catch (error) {
-        console.error('Error in getInitialSession:', error)
+        console.error('Error getting session:', error)
+        CrossDomainAuth.clearAuthToken()
       } finally {
         setLoading(false)
       }
     }
 
     getInitialSession()
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session)
-        setUser(session?.user ?? null)
-        setLoading(false)
-      }
-    )
-
-    return () => subscription.unsubscribe()
   }, [])
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
+      const response = await fetch(`${API_URL}/auth/signin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       })
-      
-      if (error) {
-        return { error: error.message }
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { error: data.error || 'Falha no login' }
       }
-      
+
+      // Store token and update state using cross-domain auth with sync
+      CrossDomainAuth.syncLogin(data.session.access_token)
+      setUser(data.user)
+      setProfile(data.user)
+      setSession({
+        ...data.session,
+        user: data.user
+      })
+
       return { error: null }
     } catch (error) {
       console.error('Sign in error:', error)
-      return { error: 'Failed to sign in' }
+      return { error: 'Falha na conexão' }
     }
   }
 
   const signUp = async (email: string, password: string, fullName?: string) => {
     try {
-      console.log('Attempting Supabase signup with:', { email, hasPassword: !!password, fullName })
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName
-          }
-        }
+      const response = await fetch(`${API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, fullName }),
       })
-      
-      console.log('Supabase signup response:', { data, error })
-      
-      if (error) {
-        console.error('Supabase signup error:', error)
-        return { error: error.message }
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { error: data.error || 'Falha no registro' }
       }
-      
-      // Check if email confirmation is required
-      if (data.user && !data.session) {
-        return { 
-          error: null, 
-          requiresConfirmation: true,
-          message: 'Please check your email to confirm your account.'
-        }
+
+      // If user was created and session exists, store token
+      if (data.user && data.session) {
+        CrossDomainAuth.syncLogin(data.session.access_token)
+        setUser(data.user)
+        setProfile(data.user)
+        setSession({
+          ...data.session,
+          user: data.user
+        })
       }
-      
-      return { error: null }
+
+      return { 
+        error: null, 
+        requiresConfirmation: data.requiresConfirmation || false,
+        message: data.message || 'Conta criada com sucesso'
+      }
     } catch (error) {
       console.error('Sign up error:', error)
-      return { error: 'Failed to create account' }
+      return { error: 'Falha na conexão' }
     }
   }
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
-      if (error) {
-        console.error('Sign out error:', error)
+      const token = localStorage.getItem('auth_token')
+      if (token) {
+        await fetch(`${API_URL}/auth/signout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
       }
+    } catch (error) {
+      console.error('Sign out error:', error)
+    } finally {
+      CrossDomainAuth.syncLogout()
       setUser(null)
       setSession(null)
       setProfile(null)
-    } catch (error) {
-      console.error('Sign out error:', error)
     }
   }
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
-      if (error) {
-        return { error: error.message }
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { error: data.error || 'Falha ao enviar email de recuperação' }
       }
+
       return { error: null }
     } catch (error) {
       console.error('Reset password error:', error)
-      return { error: 'Failed to reset password' }
+      return { error: 'Falha na conexão' }
     }
   }
 
   const updatePassword = async (password: string) => {
     try {
-      if (!user) {
-        return { error: 'No user logged in' }
+      const token = localStorage.getItem('auth_token')
+      if (!token) {
+        return { error: 'Usuário não logado' }
       }
-      
-      const { error } = await supabase.auth.updateUser({
-        password
+
+      const response = await fetch(`${API_URL}/auth/update-password`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password }),
       })
-      
-      if (error) {
-        return { error: error.message }
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        return { error: data.error || 'Falha ao atualizar senha' }
       }
-      
+
       return { error: null }
     } catch (error) {
       console.error('Update password error:', error)
-      return { error: 'Failed to update password' }
+      return { error: 'Falha na conexão' }
     }
   }
 

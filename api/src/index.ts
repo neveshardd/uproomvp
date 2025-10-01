@@ -11,6 +11,7 @@ import { conversationRoutes } from './routes/conversation';
 import { messageRoutes } from './routes/message';
 import { invitationRoutes } from './routes/invitation';
 import { userRoutes } from './routes/user';
+import { presenceRoutes } from './routes/presence';
 
 const prisma = new PrismaClient();
 
@@ -113,12 +114,13 @@ fastify.register(rateLimit, {
 });
 
 // Register routes
-fastify.register(authRoutes, { prefix: '/api/auth' });
-fastify.register(companyRoutes, { prefix: '/api/companies' });
-fastify.register(conversationRoutes, { prefix: '/api/conversations' });
-fastify.register(messageRoutes, { prefix: '/api/messages' });
-fastify.register(invitationRoutes, { prefix: '/api/invitations' });
-fastify.register(userRoutes, { prefix: '/api/users' });
+fastify.register(authRoutes, { prefix: '/auth' });
+fastify.register(companyRoutes, { prefix: '/companies' });
+fastify.register(conversationRoutes, { prefix: '/conversations' });
+fastify.register(messageRoutes, { prefix: '/messages' });
+fastify.register(invitationRoutes, { prefix: '/invitations' });
+fastify.register(userRoutes, { prefix: '/users' });
+fastify.register(presenceRoutes, { prefix: '/presence' });
 
 // Health check
 fastify.get('/health', async () => {

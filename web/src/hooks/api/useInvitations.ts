@@ -33,7 +33,7 @@ export const useCompanyInvitations = (companyId: string) => {
   return useQuery<Invitation[]>({
     queryKey: ['invitations', 'company', companyId],
     queryFn: async () => {
-      const response = await api.get(`/api/invitations/company/${companyId}`);
+      const response = await api.get(`/invitations/company/${companyId}`);
       return response.data.invitations;
     },
     enabled: !!companyId,
@@ -45,7 +45,7 @@ export const useCreateInvitation = () => {
 
   return useMutation({
     mutationFn: async (data: CreateInvitationData) => {
-      const response = await api.post('/api/invitations', data);
+      const response = await api.post('/invitations', data);
       return response.data.invitation;
     },
     onSuccess: (_, variables) => {
@@ -61,7 +61,7 @@ export const useAcceptInvitation = () => {
 
   return useMutation({
     mutationFn: async (data: AcceptInvitationData) => {
-      const response = await api.post('/api/invitations/accept', data);
+      const response = await api.post('/invitations/accept', data);
       return response.data;
     },
     onSuccess: () => {
@@ -77,7 +77,7 @@ export const useDeleteInvitation = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.delete(`/api/invitations/${id}`);
+      const response = await api.delete(`/invitations/${id}`);
       return response.data;
     },
     onSuccess: () => {

@@ -67,11 +67,11 @@ const Navbar = () => {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate('/maindashboard')}>
+                  <DropdownMenuItem onClick={() => navigate('/')}>
                     <Building2 className="mr-2 h-4 w-4" />
                     My Workspaces
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
                     <User className="mr-2 h-4 w-4" />
                     Profile
                   </DropdownMenuItem>

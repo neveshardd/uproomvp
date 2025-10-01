@@ -67,7 +67,7 @@ export const useConversations = (companyId?: string) => {
     queryKey: ['conversations', companyId],
     queryFn: async () => {
       const params = companyId ? { companyId } : {};
-      const response = await api.get('/api/conversations', { params });
+      const response = await api.get('/conversations', { params });
       return response.data.conversations;
     },
   });
@@ -77,7 +77,7 @@ export const useConversation = (id: string) => {
   return useQuery<Conversation>({
     queryKey: ['conversations', id],
     queryFn: async () => {
-      const response = await api.get(`/api/conversations/${id}`);
+      const response = await api.get(`/conversations/${id}`);
       return response.data.conversation;
     },
     enabled: !!id,
@@ -89,7 +89,7 @@ export const useCreateConversation = () => {
 
   return useMutation({
     mutationFn: async (data: CreateConversationData) => {
-      const response = await api.post('/api/conversations', data);
+      const response = await api.post('/conversations', data);
       return response.data.conversation;
     },
     onSuccess: (_, variables) => {
@@ -104,7 +104,7 @@ export const useUpdateConversation = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateConversationData }) => {
-      const response = await api.put(`/api/conversations/${id}`, data);
+      const response = await api.put(`/conversations/${id}`, data);
       return response.data.conversation;
     },
     onSuccess: (_, { id }) => {
@@ -119,7 +119,7 @@ export const useAddParticipant = () => {
 
   return useMutation({
     mutationFn: async ({ conversationId, userId }: { conversationId: string; userId: string }) => {
-      const response = await api.post(`/api/conversations/${conversationId}/participants`, { userId });
+      const response = await api.post(`/conversations/${conversationId}/participants`, { userId });
       return response.data;
     },
     onSuccess: (_, { conversationId }) => {

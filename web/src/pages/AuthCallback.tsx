@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 import { useToast } from '@/hooks/use-toast'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -12,6 +12,7 @@ const AuthCallback = () => {
   const [success, setSuccess] = useState(false)
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { user } = useAuth()
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -30,16 +31,8 @@ const AuthCallback = () => {
           return
         }
 
-        // Handle the auth callback
-        const { data, error: authError } = await supabase.auth.getSession()
-        
-        if (authError) {
-          setError(authError.message)
-          setLoading(false)
-          return
-        }
-
-        if (data.session) {
+        // Check if user is already authenticated
+        if (user) {
           setSuccess(true)
           toast({
             title: 'Email Confirmed!',
@@ -62,7 +55,7 @@ const AuthCallback = () => {
     }
 
     handleAuthCallback()
-  }, [navigate, toast])
+  }, [navigate, toast, user])
 
   if (loading) {
     return (

@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useRateLimit } from '@/hooks/useRateLimit'
 import { useSubdomain } from '@/hooks/useSubdomain'
 import AuthRedirect from '@/components/AuthRedirect'
+import { CrossDomainAuth } from '@/lib/cross-domain-auth'
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -89,15 +90,24 @@ const Login = () => {
             description: 'You have successfully logged in.',
           })
           
-          // Check if we're on a subdomain - if so, stay on subdomain after login
-          if (subdomain && company && isValidWorkspace) {
-            // Use a simple timeout to ensure the auth state is fully updated
+          // Handle redirect after successful login
+          if (CrossDomainAuth.isSubdomain()) {
+            // On subdomain, redirect to workspace root
             setTimeout(() => {
               window.location.href = `${window.location.protocol}//${window.location.host}/`
             }, 100)
           } else {
-            // On main domain, redirect to main dashboard to show all workspaces
-            navigate('/maindashboard')
+            // On main domain, check for return URL or redirect to main dashboard
+            const urlParams = new URLSearchParams(window.location.search)
+            const returnUrl = urlParams.get('returnUrl')
+            
+            if (returnUrl) {
+              // Redirect to the original subdomain
+              window.location.href = decodeURIComponent(returnUrl)
+            } else {
+              // Default redirect to main dashboard
+              navigate('/maindashboard')
+            }
           }
         },
         (error) => {

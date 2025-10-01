@@ -85,9 +85,18 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
         setUserCompanies(companies)
         
         // If user has companies but no current company set, set the first one
+        console.log('🔍 CompanyContext: Checking if should set current company:', {
+          companiesLength: companies.length,
+          currentCompanyId: profile?.current_company_id,
+          hasProfile: !!profile
+        })
+        
         if (companies.length > 0 && !profile?.current_company_id) {
-          console.log('🔍 CompanyContext: Switching to first company:', companies[0].id)
-          await switchCompany(companies[0].id)
+          console.log('🔍 CompanyContext: Setting first company as current:', companies[0].id)
+          setCurrentCompany(companies[0])
+          await loadCompanyData(companies[0].id)
+        } else if (companies.length > 0) {
+          console.log('🔍 CompanyContext: User has profile with current_company_id, not auto-setting')
         }
       }
     } catch (error) {
@@ -128,7 +137,16 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       }
 
       if (company) {
-        // Refresh companies list
+        // Add the new company to the current list immediately
+        setUserCompanies(prev => [...prev, company])
+        
+        // Set as current company
+        setCurrentCompany(company)
+        
+        // Load company data
+        await loadCompanyData(company.id)
+        
+        // Also refresh the full list to ensure consistency
         await loadUserCompanies()
         return { success: true }
       }

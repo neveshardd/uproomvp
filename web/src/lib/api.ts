@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { supabase } from './supabase';
 
 // Configuração base do Axios
 const api = axios.create({
@@ -12,11 +11,11 @@ const api = axios.create({
 
 // Interceptor para adicionar token de autenticação
 api.interceptors.request.use(
-  async (config) => {
-    const { data: { session } } = await supabase.auth.getSession();
+  (config) => {
+    const token = localStorage.getItem('auth_token');
     
-    if (session?.access_token) {
-      config.headers.Authorization = `Bearer ${session.access_token}`;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     
     return config;
@@ -29,10 +28,10 @@ api.interceptors.request.use(
 // Interceptor para tratar erros de resposta
 api.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     if (error.response?.status === 401) {
-      // Token expirado, redirecionar para login
-      await supabase.auth.signOut();
+      // Token expirado, limpar localStorage e redirecionar para login
+      localStorage.removeItem('auth_token');
       window.location.href = '/login';
     }
     

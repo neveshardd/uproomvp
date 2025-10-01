@@ -15,22 +15,16 @@ const DashboardRouter: React.FC = () => {
   const { currentCompany, userCompanies, isLoading: companyLoading } = useCompany()
 
   useEffect(() => {
-    // If we're on a subdomain, restrict access to /dashboard
+    // If we're on a subdomain, allow access to /dashboard for authenticated users
     if (!isLoading && subdomain) {
-      // If user is authenticated and belongs to this company, redirect to main dashboard
-      if (user && company && isValidWorkspace) {
-        const isMemberOfThisCompany = userCompanies?.some(uc => uc.id === company.id)
-        
-        if (isMemberOfThisCompany) {
-          // Stay on the same subdomain, just redirect to root
-          window.location.href = `${window.location.protocol}//${window.location.host}/`
-          return
-        }
+      // If user is not authenticated, redirect to main domain
+      if (!user) {
+        const mainDomain = window.location.host.split('.').slice(-2).join('.')
+        window.location.href = `${window.location.protocol}//${mainDomain}/maindashboard`
+        return
       }
-      // For all subdomain users, redirect to main domain maindashboard
-      const mainDomain = window.location.host.split('.').slice(-2).join('.')
-      window.location.href = `${window.location.protocol}//${mainDomain}/maindashboard`
-      return
+      // If user is authenticated, allow them to stay on subdomain /dashboard
+      // No redirection needed - let them access the dashboard
     }
 
     // Removed automatic redirection to allow users to see their workspaces on main domain
@@ -49,50 +43,22 @@ const DashboardRouter: React.FC = () => {
     )
   }
 
-  // If we're on a subdomain, show access restriction message
+  // If we're on a subdomain, show the dashboard normally
   if (subdomain) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-              <AlertTriangle className="h-6 w-6 text-orange-600" />
-            </div>
-            <CardTitle className="text-xl">Access Restricted</CardTitle>
-            <CardDescription>
-              The dashboard is not available from this workspace subdomain.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-gray-600 text-center">
-              Please use your workspace dashboard or visit the main site.
-            </p>
-            
-            <div className="flex flex-col space-y-2">
-              <Button 
-                onClick={() => {
-                  window.location.href = SubdomainService.getWorkspaceUrl(subdomain)
-                }}
-                className="w-full"
-              >
-                Go to Workspace
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => window.location.href = `${window.location.protocol}//${window.location.host.split('.').slice(-2).join('.')}`}
-                className="w-full"
-              >
-                <Home className="mr-2 h-4 w-4" />
-                Go to Main Site
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ProtectedRoute>
+        <Dashboard />
+      </ProtectedRoute>
     )
   }
 
   // Only allow access to /dashboard from main domain (no subdomain)
+  // Se não há empresas, redireciona para criação
+  if (!currentCompany && userCompanies.length === 0) {
+    window.location.href = '/create-company'
+    return null
+  }
+
   return (
     <ProtectedRoute>
       <Dashboard />

@@ -42,7 +42,7 @@ export const useCompanies = () => {
   return useQuery<Company[]>({
     queryKey: ['companies'],
     queryFn: async () => {
-      const response = await api.get('/api/companies');
+      const response = await api.get('/companies');
       return response.data.companies;
     },
   });
@@ -52,7 +52,7 @@ export const useCompany = (id: string) => {
   return useQuery<Company>({
     queryKey: ['companies', id],
     queryFn: async () => {
-      const response = await api.get(`/api/companies/${id}`);
+      const response = await api.get(`/companies/${id}`);
       return response.data.company;
     },
     enabled: !!id,
@@ -64,7 +64,7 @@ export const useCreateCompany = () => {
 
   return useMutation({
     mutationFn: async (data: CreateCompanyData) => {
-      const response = await api.post('/api/companies', data);
+      const response = await api.post('/companies', data);
       return response.data.company;
     },
     onSuccess: () => {
@@ -78,7 +78,7 @@ export const useUpdateCompany = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateCompanyData }) => {
-      const response = await api.put(`/api/companies/${id}`, data);
+      const response = await api.put(`/companies/${id}`, data);
       return response.data.company;
     },
     onSuccess: (_, { id }) => {
@@ -92,7 +92,7 @@ export const useCheckSubdomain = (subdomain: string) => {
   return useQuery<{ available: boolean }>({
     queryKey: ['subdomain-check', subdomain],
     queryFn: async () => {
-      const response = await api.get(`/api/companies/check-subdomain/${subdomain}`);
+      const response = await api.get(`/companies/check-subdomain/${subdomain}`);
       return response.data;
     },
     enabled: !!subdomain,

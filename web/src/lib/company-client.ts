@@ -24,7 +24,7 @@ export interface InvitationData {
 }
 
 export class CompanyService {
-  private static readonly API_BASE = '/api/companies'
+  private static readonly API_BASE = '/companies'
 
   /**
    * Get user's companies

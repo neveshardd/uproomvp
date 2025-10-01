@@ -14,7 +14,7 @@ export interface AuthResult {
 }
 
 export class AuthService {
-  private static readonly API_BASE = '/api/auth'
+  private static readonly API_BASE = '/auth'
 
   /**
    * Sign up new user

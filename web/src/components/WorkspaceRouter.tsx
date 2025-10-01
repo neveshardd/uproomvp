@@ -1,11 +1,15 @@
 import React from 'react'
+import { useLocation } from 'react-router-dom'
 import { useSubdomain } from '@/hooks/useSubdomain'
 import { useAuth } from '@/contexts/AuthContext'
+import { useCompany } from '@/contexts/CompanyContext'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Building2, AlertTriangle, Home } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import MainDashboard from '@/components/MainDashboard'
+import WorkspaceList from '@/components/WorkspaceList'
+import WorkspaceDashboard from '@/components/WorkspaceDashboard'
 
 interface WorkspaceRouterProps {
   children: React.ReactNode
@@ -14,6 +18,7 @@ interface WorkspaceRouterProps {
 const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
   const { subdomain, company, isLoading, error, isValidWorkspace, redirectToMainDomain } = useSubdomain()
   const { user } = useAuth()
+  const location = useLocation()
 
   // Loading state
   if (isLoading) {
@@ -31,8 +36,11 @@ const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
     )
   }
 
-  // No subdomain - render main application
+  // No subdomain - show workspace list for authenticated users, main app for others
   if (!subdomain) {
+    if (user) {
+      return <WorkspaceList />
+    }
     return <>{children}</>
   }
 
@@ -82,7 +90,7 @@ const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
     <div className="min-h-screen">
       {/* Workspace Content */}
       {user ? (
-        // User is authenticated - show workspace content
+        // User is authenticated - check if they have access to this workspace
         <WorkspaceContent company={company} />
       ) : (
         // User not authenticated - show login prompt
@@ -95,6 +103,71 @@ const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
 }
 
 const WorkspaceContent: React.FC<{ company: any }> = ({ company }) => {
+  const location = useLocation()
+  const { user } = useAuth()
+  const { userCompanies } = useCompany()
+  
+  // Check if user has access to this company
+  // The user should have access if:
+  // 1. They are the owner of the company
+  // 2. They are a member of the company
+  // 3. They are in the userCompanies list
+  const hasAccess = userCompanies?.some(uc => uc.id === company.id) || 
+                   company.ownerId === user?.id ||
+                   company.members?.some((member: any) => member.userId === user?.id)
+  
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <AlertTriangle className="h-6 w-6 text-red-600" />
+            </div>
+            <CardTitle className="text-xl">Access Denied</CardTitle>
+            <CardDescription>
+              You don't have access to the "{company.name}" workspace.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                You need to be invited to this workspace to access it.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex flex-col space-y-2">
+              <Button 
+                onClick={() => {
+                  const mainDomain = window.location.host.split('.').slice(-2).join('.')
+                  window.location.href = `${window.location.protocol}//${mainDomain}/maindashboard`
+                }}
+                className="w-full"
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Go to Your Workspaces
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => window.location.reload()}
+                className="w-full"
+              >
+                Try Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+  
+  // Check if we're on /dashboard route
+  if (location.pathname === '/dashboard' || location.pathname.endsWith('/dashboard')) {
+    return <WorkspaceDashboard />
+  }
+  
+  // Default workspace page (subdomain root)
   return <MainDashboard companyId={company.id} company={company} />
 }
 

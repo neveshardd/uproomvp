@@ -52,7 +52,7 @@ export const useProfile = () => {
   return useQuery<User>({
     queryKey: ['profile'],
     queryFn: async () => {
-      const response = await api.get('/api/users/profile');
+      const response = await api.get('/users/profile');
       return response.data.user;
     },
   });
@@ -62,7 +62,7 @@ export const useCompanyMembers = (companyId: string) => {
   return useQuery<CompanyMember[]>({
     queryKey: ['company-members', companyId],
     queryFn: async () => {
-      const response = await api.get(`/api/users/company/${companyId}`);
+      const response = await api.get(`/users/company/${companyId}`);
       return response.data.members;
     },
     enabled: !!companyId,
@@ -73,7 +73,7 @@ export const useSearchUsers = (params: SearchUsersParams) => {
   return useQuery<User[]>({
     queryKey: ['search-users', params],
     queryFn: async () => {
-      const response = await api.get('/api/users/search', { params });
+      const response = await api.get('/users/search', { params });
       return response.data.users;
     },
     enabled: !!params.email,
@@ -85,7 +85,7 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: async (data: UpdateProfileData) => {
-      const response = await api.put('/api/users/profile', data);
+      const response = await api.put('/users/profile', data);
       return response.data.user;
     },
     onSuccess: () => {

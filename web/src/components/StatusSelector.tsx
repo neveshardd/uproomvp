@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { useAuth } from '../contexts/AuthContext'
+import { useCompany } from '../contexts/CompanyContext'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
@@ -34,8 +36,6 @@ import {
   Minus,
   Check
 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
-import { usePresence } from '@/hooks/usePresence'
 import { UserStatus } from '@prisma/client'
 
 interface StatusOption {
@@ -131,6 +131,7 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
   className = ""
 }) => {
   const { user } = useAuth()
+  const { userCompanies } = useCompany()
   const [selectedStatus, setSelectedStatus] = useState<string>('available')
   const [customMessage, setCustomMessage] = useState('')
   const [autoExpiry, setAutoExpiry] = useState('')
@@ -154,31 +155,18 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
 
   const fetchUserCompanies = async () => {
     try {
-      const { prisma } = await import('../lib/prisma')
-      const members = await prisma.companyMember.findMany({
-        where: {
-          userId: user?.id,
-          isActive: true
-        },
-        include: {
-          company: {
-            select: {
-              id: true,
-              name: true
-            }
-          }
+      // Use the CompanyContext instead of direct Prisma calls
+      if (userCompanies && userCompanies.length > 0) {
+        const companiesData = userCompanies.map(company => ({
+          id: company.id,
+          name: company.name
+        }))
+
+        setCompanies(companiesData)
+
+        if (!companyId && companiesData.length > 0) {
+          setSelectedCompany(companiesData[0].id)
         }
-      })
-
-      const companiesData = members.map(member => ({
-        id: member.company.id,
-        name: member.company.name
-      }))
-
-      setCompanies(companiesData)
-
-      if (!companyId && companiesData.length > 0) {
-        setSelectedCompany(companiesData[0].id)
       }
     } catch (err: any) {
       console.error('Error fetching companies:', err)
@@ -189,21 +177,20 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     if (!selectedCompany || !user) return
 
     try {
-      const { prisma } = await import('../lib/prisma')
-      const status = await prisma.userPresence.findUnique({
-        where: {
-          userId_companyId: {
-            userId: user.id,
-            companyId: selectedCompany
-          }
-        }
-      })
+      const { PresenceService } = await import('../lib/presence-client')
+      const { presence, error } = await PresenceService.getUserPresence(selectedCompany)
 
-      if (status) {
-        setCurrentStatus(status)
-        setSelectedStatus(status.status)
-        setCustomMessage(status.message || '')
-        setIsToggleOn(status.status !== 'OFFLINE')
+      if (error) {
+        console.error('Error fetching current status:', error)
+        await createDefaultStatus()
+        return
+      }
+
+      if (presence) {
+        setCurrentStatus(presence)
+        setSelectedStatus(presence.status)
+        setCustomMessage(presence.message || '')
+        setIsToggleOn(presence.status !== 'OFFLINE')
       } else {
         // No status found, create default offline status
         await createDefaultStatus()
@@ -219,21 +206,24 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     if (!user || !selectedCompany) return
 
     try {
-      const { prisma } = await import('../lib/prisma')
-      const status = await prisma.userPresence.create({
-        data: {
-          userId: user.id,
-          companyId: selectedCompany,
-          status: 'OFFLINE',
-          message: 'Finished for today',
-          isOnline: false
-        }
+      const { PresenceService } = await import('../lib/presence-client')
+      const { presence, error } = await PresenceService.updatePresence(selectedCompany, {
+        status: 'OFFLINE',
+        message: 'Finished for today',
+        isOnline: false
       })
 
-      setCurrentStatus(status)
-      setSelectedStatus('OFFLINE')
-      setCustomMessage('Finished for today')
-      setIsToggleOn(false)
+      if (error) {
+        console.error('Error creating default status:', error)
+        return
+      }
+
+      if (presence) {
+        setCurrentStatus(presence)
+        setSelectedStatus('OFFLINE')
+        setCustomMessage('Finished for today')
+        setIsToggleOn(false)
+      }
     } catch (err: any) {
       console.error('Error creating default status:', err)
     }
@@ -255,40 +245,41 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     setSuccess('')
 
     try {
-      // Update status using Prisma
-      const { prisma } = await import('../lib/prisma')
-      const newStatus = await prisma.userPresence.upsert({
-        where: {
-          userId_companyId: {
-            userId: user.id,
-            companyId: selectedCompany
-          }
-        },
-        update: {
-          status: selectedStatus as UserStatus,
-          message: customMessage,
-          isOnline: selectedStatus !== 'OFFLINE',
-          lastSeen: new Date()
-        },
-        create: {
-          userId: user.id,
-          companyId: selectedCompany,
-          status: selectedStatus as UserStatus,
-          message: customMessage,
-          isOnline: selectedStatus !== 'OFFLINE',
-          lastSeen: new Date()
-        }
+      // Update status using API
+      const { PresenceService } = await import('../lib/presence-client')
+      // Map frontend status to API status
+      const statusMap: Record<string, 'AVAILABLE' | 'BUSY' | 'AWAY' | 'OFFLINE'> = {
+        'available': 'AVAILABLE',
+        'focus': 'AVAILABLE',
+        'meeting': 'BUSY',
+        'away': 'AWAY',
+        'break': 'AWAY',
+        'emergency': 'BUSY',
+        'offline': 'OFFLINE'
+      }
+
+      const { presence, error } = await PresenceService.updatePresence(selectedCompany, {
+        status: statusMap[selectedStatus] || 'AVAILABLE',
+        message: customMessage,
+        isOnline: selectedStatus !== 'offline'
       })
-      
-      setCurrentStatus(newStatus)
-      setIsToggleOn(selectedStatus !== 'OFFLINE')
-      setSuccess('Status updated successfully!')
-      
-      // Close the selector after a brief delay
-      setTimeout(() => {
-        setIsOpen(false)
-        setSuccess('')
-      }, 1500)
+
+      if (error) {
+        setError(error)
+        return
+      }
+
+      if (presence) {
+        setCurrentStatus(presence)
+        setIsToggleOn(selectedStatus !== 'OFFLINE')
+        setSuccess('Status updated successfully!')
+        
+        // Close the selector after a brief delay
+        setTimeout(() => {
+          setIsOpen(false)
+          setSuccess('')
+        }, 1500)
+      }
 
     } catch (err: any) {
       console.error('Error updating status:', err)

@@ -15,7 +15,7 @@ export interface InviteUserData {
 }
 
 export class InvitationService {
-  private static readonly API_BASE = '/api/invitations'
+  private static readonly API_BASE = '/invitations'
 
   /**
    * Validate invitation token without accepting it
