@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useSubdomain } from '@/hooks/useSubdomain'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCompany } from '@/contexts/CompanyContext'
+import { debugSubdomain } from '@/lib/debug'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2, Building2, AlertTriangle, Home } from 'lucide-react'
@@ -19,6 +20,12 @@ const WorkspaceRouter: React.FC<WorkspaceRouterProps> = ({ children }) => {
   const { subdomain, company, isLoading, error, isValidWorkspace, redirectToMainDomain } = useSubdomain()
   const { user } = useAuth()
   const location = useLocation()
+  
+  // Debug subdomain detection
+  React.useEffect(() => {
+    const debugInfo = debugSubdomain()
+    console.log('WorkspaceRouter Debug:', debugInfo)
+  }, [])
 
   // Loading state
   if (isLoading) {
@@ -140,7 +147,17 @@ const WorkspaceContent: React.FC<{ company: any }> = ({ company }) => {
             <div className="flex flex-col space-y-2">
               <Button 
                 onClick={() => {
-                  const mainDomain = window.location.host.split('.').slice(-2).join('.')
+                  const hostname = window.location.hostname
+                  let mainDomain
+                  
+                  if (hostname.includes('vercel.app')) {
+                    mainDomain = hostname.split('.').slice(-2).join('.')
+                  } else if (hostname.includes('localhost')) {
+                    mainDomain = 'localhost:8080'
+                  } else {
+                    mainDomain = process.env.VITE_DOMAIN || 'uproom.com'
+                  }
+                  
                   window.location.href = `${window.location.protocol}//${mainDomain}/maindashboard`
                 }}
                 className="w-full"

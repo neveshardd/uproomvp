@@ -95,6 +95,22 @@ export const useSubdomain = () => {
 
   const redirectToMainDomain = () => {
     const protocol = window.location.protocol
+    const hostname = window.location.hostname
+    
+    // For Vercel deployment
+    if (hostname.includes('vercel.app')) {
+      const baseDomain = hostname.split('.').slice(-2).join('.')
+      window.location.href = `${protocol}//${baseDomain}`
+      return
+    }
+    
+    // For localhost development
+    if (hostname.includes('localhost')) {
+      window.location.href = `${protocol}//localhost:8080`
+      return
+    }
+    
+    // For production with custom domain
     const domain = process.env.NODE_ENV === 'production' 
       ? process.env.VITE_DOMAIN || 'uproom.com'
       : 'localhost:8080'

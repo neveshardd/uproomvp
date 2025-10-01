@@ -148,7 +148,20 @@ export class SubdomainService {
       return null
     }
     
-    // For production (subdomain.domain.com)
+    // For Vercel deployment (subdomain.uproomvp.vercel.app)
+    if (hostname.includes('vercel.app')) {
+      if (parts.length >= 3) {
+        // Check if it's not the main domain (uproomvp.vercel.app)
+        const subdomain = parts[0]
+        const baseDomain = parts.slice(-2).join('.')
+        if (baseDomain === 'vercel.app' && subdomain !== 'uproomvp') {
+          return subdomain
+        }
+      }
+      return null
+    }
+    
+    // For production with custom domain (subdomain.uproom.com)
     if (parts.length >= 3) {
       return parts[0]
     }
@@ -186,12 +199,30 @@ export class SubdomainService {
    * Get the base domain for the current environment
    */
   static getBaseDomain(): string {
-    if (process.env.NODE_ENV === 'production') {
-      return process.env.VITE_DOMAIN || 'uproom.com'
-    } else {
-      // For development, always use localhost:8080 to avoid port conflicts
+    if (typeof window === 'undefined') {
+      return process.env.NODE_ENV === 'production' 
+        ? process.env.VITE_DOMAIN || 'uproom.com'
+        : 'localhost:8080'
+    }
+    
+    const hostname = window.location.hostname
+    
+    // For Vercel deployment
+    if (hostname.includes('vercel.app')) {
+      return hostname.split('.').slice(-2).join('.') // Get the base domain from current hostname
+    }
+    
+    // For localhost development
+    if (hostname.includes('localhost')) {
       return 'localhost:8080'
     }
+    
+    // For production with custom domain
+    if (process.env.NODE_ENV === 'production') {
+      return process.env.VITE_DOMAIN || 'uproom.com'
+    }
+    
+    return 'localhost:8080'
   }
 
   /**

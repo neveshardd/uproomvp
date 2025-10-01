@@ -10,6 +10,10 @@
 - **Causa**: Assets não estão sendo servidos corretamente
 - **Solução**: Configuração de build e assets no Vite
 
+### 3. **Problema: Redirecionamento incorreto para vercel.com/neves-hard**
+- **Causa**: Lógica de detecção de subdomínios não funcionava com Vercel
+- **Solução**: Correção da lógica de detecção e redirecionamento para Vercel
+
 ## Configurações Implementadas
 
 ### 1. **vercel.json** - Configuração do Vercel
@@ -47,6 +51,12 @@
 - Detecta subdomínios automaticamente
 - Redireciona corretamente para o app React
 - Preserva funcionalidade de workspace
+
+### 4. **Correções de Subdomínios** - Lógica de Detecção
+- ✅ Detecção correta para Vercel (`subdomain.uproomvp.vercel.app`)
+- ✅ Redirecionamento correto para domínio base
+- ✅ Debug integrado para identificar problemas
+- ✅ Suporte a localhost e produção
 
 ## Variáveis de Ambiente Necessárias
 
