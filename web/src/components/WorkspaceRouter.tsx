@@ -151,11 +151,11 @@ const WorkspaceContent: React.FC<{ company: any }> = ({ company }) => {
                   let mainDomain
                   
                   if (hostname.includes('vercel.app')) {
-                    mainDomain = 'uproomvp.vercel.app'
+                    mainDomain = import.meta.env.VITE_VERCEL_DOMAIN || 'uproomvp.vercel.app'
                   } else if (hostname.includes('localhost')) {
-                    mainDomain = 'localhost:8080'
+                    mainDomain = import.meta.env.VITE_DEV_DOMAIN || 'localhost:8080'
                   } else {
-                    mainDomain = process.env.VITE_DOMAIN || 'uproom.com'
+                    mainDomain = import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
                   }
                   
                   window.location.href = `${window.location.protocol}//${mainDomain}/maindashboard`

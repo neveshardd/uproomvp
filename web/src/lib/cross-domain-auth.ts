@@ -110,18 +110,16 @@ export class CrossDomainAuth {
     
     // For Vercel deployment
     if (hostname.includes('vercel.app')) {
-      return 'uproomvp.vercel.app'
+      return import.meta.env.VITE_VERCEL_DOMAIN || 'uproomvp.vercel.app'
     }
     
     // For localhost development
     if (hostname.includes('localhost')) {
-      return 'localhost:8080'
+      return import.meta.env.VITE_DEV_DOMAIN || 'localhost:8080'
     }
     
     // For production with custom domain
-    return process.env.NODE_ENV === 'production' 
-      ? process.env.VITE_DOMAIN || 'uproom.com'
-      : 'localhost:8080'
+    return import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
   }
 
   /**

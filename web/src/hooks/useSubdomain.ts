@@ -99,22 +99,20 @@ export const useSubdomain = () => {
     
     // For Vercel deployment
     if (hostname.includes('vercel.app')) {
-      // Always redirect to the main Vercel domain
-      window.location.href = `${protocol}//uproomvp.vercel.app`
+      const vercelDomain = import.meta.env.VITE_VERCEL_DOMAIN || 'uproomvp.vercel.app'
+      window.location.href = `${protocol}//${vercelDomain}`
       return
     }
     
     // For localhost development
     if (hostname.includes('localhost')) {
-      window.location.href = `${protocol}//localhost:8080`
+      const devDomain = import.meta.env.VITE_DEV_DOMAIN || 'localhost:8080'
+      window.location.href = `${protocol}//${devDomain}`
       return
     }
     
     // For production with custom domain
-    const domain = process.env.NODE_ENV === 'production' 
-      ? process.env.VITE_DOMAIN || 'uproom.com'
-      : 'localhost:8080'
-    
+    const domain = import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
     window.location.href = `${protocol}//${domain}`
   }
 

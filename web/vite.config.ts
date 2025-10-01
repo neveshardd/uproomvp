@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => ({
       origin: [
         'http://localhost:8080',
         'https://localhost:8080',
+        /^https:\/\/.*\.starvibe\.space$/,
+        /^http:\/\/.*\.starvibe\.space$/,
         /^https:\/\/.*\.uproom\.com$/,
         /^http:\/\/.*\.localhost:8080$/,
         /^https:\/\/.*\.localhost:8080$/

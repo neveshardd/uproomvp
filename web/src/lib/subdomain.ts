@@ -123,9 +123,7 @@ export class SubdomainService {
    * Get the full URL for a subdomain
    */
   static getSubdomainUrl(subdomain: string, protocol: string = 'https'): string {
-    const domain = process.env.NODE_ENV === 'production' 
-      ? process.env.VITE_DOMAIN || 'uproom.com'
-      : 'localhost:8080'
+    const domain = import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
     
     return `${protocol}://${subdomain}.${domain}`
   }
@@ -182,9 +180,10 @@ export class SubdomainService {
     if (typeof window === 'undefined') return false
     
     const hostname = window.location.hostname
+    const mainDomain = import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
     
     // Production environment
-    if (hostname.includes('uproom.com')) {
+    if (hostname.includes(mainDomain)) {
       return true
     }
     
@@ -201,30 +200,23 @@ export class SubdomainService {
    */
   static getBaseDomain(): string {
     if (typeof window === 'undefined') {
-      return process.env.NODE_ENV === 'production' 
-        ? process.env.VITE_DOMAIN || 'uproom.com'
-        : 'localhost:8080'
+      return import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
     }
     
     const hostname = window.location.hostname
     
     // For Vercel deployment
     if (hostname.includes('vercel.app')) {
-      // Always return the main Vercel domain, not the current hostname
-      return 'uproomvp.vercel.app'
+      return import.meta.env.VITE_VERCEL_DOMAIN || 'uproomvp.vercel.app'
     }
     
     // For localhost development
     if (hostname.includes('localhost')) {
-      return 'localhost:8080'
+      return import.meta.env.VITE_DEV_DOMAIN || 'localhost:8080'
     }
     
     // For production with custom domain
-    if (process.env.NODE_ENV === 'production') {
-      return process.env.VITE_DOMAIN || 'uproom.com'
-    }
-    
-    return 'localhost:8080'
+    return import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
   }
 
   /**
