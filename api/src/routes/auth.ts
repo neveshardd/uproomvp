@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { supabase } from '../lib/supabase';
+import { env } from '../lib/env';
 
 const signInSchema = z.object({
   email: z.string().email(),
@@ -150,7 +151,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const { email } = resetPasswordSchema.parse(request.body);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password`,
+        redirectTo: `${env.FRONTEND_URL}/reset-password`,
       });
 
       if (error) {

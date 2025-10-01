@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
+import { env } from './lib/env';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
@@ -35,8 +36,8 @@ fastify.register(swagger, {
         email: 'support@uproom.com'
       }
     },
-    host: process.env.NODE_ENV === 'production' ? 'api.uproom.com' : 'localhost:3333',
-    schemes: process.env.NODE_ENV === 'production' ? ['https'] : ['http'],
+    host: env.NODE_ENV === 'production' ? 'api.uproom.com' : 'localhost:3333',
+    schemes: env.NODE_ENV === 'production' ? ['https'] : ['http'],
     consumes: ['application/json'],
     produces: ['application/json'],
     tags: [
@@ -74,8 +75,8 @@ fastify.register(swaggerUi, {
   transformSpecificationClone: true
 });
 // Configuração do CORS usando variáveis de ambiente
-const corsOrigins = process.env.CORS_ORIGIN 
-  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+const corsOrigins = env.CORS_ORIGIN 
+  ? env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : [
       'http://localhost:8080',
       'http://localhost:5173',
@@ -109,8 +110,8 @@ fastify.register(cors, {
   ]
 });
 fastify.register(rateLimit, {
-  max: parseInt(process.env.RATE_LIMIT_MAX || '100'),
-  timeWindow: process.env.RATE_LIMIT_TIME_WINDOW || '1 minute',
+  max: env.RATE_LIMIT_MAX,
+  timeWindow: env.RATE_LIMIT_TIME_WINDOW,
 });
 
 // Register routes
@@ -144,8 +145,7 @@ process.on('SIGINT', gracefulShutdown);
 
 const start = async () => {
   try {
-    const port = parseInt(process.env.PORT || '3333');
-    await fastify.listen({ port, host: '0.0.0.0' });
+    await fastify.listen({ port: env.PORT, host: '0.0.0.0' });
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
