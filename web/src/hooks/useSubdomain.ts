@@ -99,8 +99,8 @@ export const useSubdomain = () => {
     
     // For Vercel deployment
     if (hostname.includes('vercel.app')) {
-      const baseDomain = hostname.split('.').slice(-2).join('.')
-      window.location.href = `${protocol}//${baseDomain}`
+      // Always redirect to the main Vercel domain
+      window.location.href = `${protocol}//uproomvp.vercel.app`
       return
     }
     

@@ -151,7 +151,7 @@ const WorkspaceContent: React.FC<{ company: any }> = ({ company }) => {
                   let mainDomain
                   
                   if (hostname.includes('vercel.app')) {
-                    mainDomain = hostname.split('.').slice(-2).join('.')
+                    mainDomain = 'uproomvp.vercel.app'
                   } else if (hostname.includes('localhost')) {
                     mainDomain = 'localhost:8080'
                   } else {

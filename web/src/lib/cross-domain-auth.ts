@@ -107,10 +107,21 @@ export class CrossDomainAuth {
    */
   static getMainDomain(): string {
     const hostname = window.location.hostname
+    
+    // For Vercel deployment
+    if (hostname.includes('vercel.app')) {
+      return 'uproomvp.vercel.app'
+    }
+    
+    // For localhost development
     if (hostname.includes('localhost')) {
       return 'localhost:8080'
     }
-    return hostname.split('.').slice(-2).join('.')
+    
+    // For production with custom domain
+    return process.env.NODE_ENV === 'production' 
+      ? process.env.VITE_DOMAIN || 'uproom.com'
+      : 'localhost:8080'
   }
 
   /**

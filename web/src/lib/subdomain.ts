@@ -158,6 +158,7 @@ export class SubdomainService {
           return subdomain
         }
       }
+      // For main domain (uproomvp.vercel.app), return null
       return null
     }
     
@@ -209,7 +210,8 @@ export class SubdomainService {
     
     // For Vercel deployment
     if (hostname.includes('vercel.app')) {
-      return hostname.split('.').slice(-2).join('.') // Get the base domain from current hostname
+      // Always return the main Vercel domain, not the current hostname
+      return 'uproomvp.vercel.app'
     }
     
     // For localhost development
