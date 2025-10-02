@@ -125,6 +125,11 @@ export class SubdomainService {
   static getSubdomainUrl(subdomain: string, protocol: string = 'https'): string {
     const domain = import.meta.env.VITE_MAIN_DOMAIN || import.meta.env.VITE_DOMAIN || 'starvibe.space'
     
+    // Ensure subdomain is valid
+    if (!subdomain || subdomain.length < 3) {
+      throw new Error('Invalid subdomain')
+    }
+    
     return `${protocol}://${subdomain}.${domain}`
   }
 
