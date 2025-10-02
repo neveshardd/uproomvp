@@ -141,8 +141,8 @@ export class CrossDomainAuth {
     
     // Prevent redirect loops by checking if we're already on a login page
     if (currentPath.includes('/login') || currentPath.includes('/register')) {
-      console.warn('Already on auth page, redirecting without return URL to prevent loop')
-      window.location.href = `${protocol}//${mainDomain}/login`
+      console.warn('Already on auth page, skipping redirect to prevent loop')
+      // If already on an auth page, do NOT redirect again. Just return.
       return
     }
     

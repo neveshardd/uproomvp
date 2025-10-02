@@ -84,8 +84,11 @@ const corsOrigins = env.CORS_ORIGIN
       'http://127.0.0.1:5173',
       'https://uproom.com',
       'http://uproom.com',
+      'https://www.starvibe.space',
+      'https://starvibe.space',
       // Subdomínios locais para desenvolvimento
       /^http:\/\/[a-zA-Z0-9-]+\.localhost:8080$/,
+      /^http:\/\/[a-zA-Z0-9-]+\.starvibe\.space$/,
       /^http:\/\/[a-zA-Z0-9-]+\.localhost:5173$/,
       /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:8080$/,
       /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:5173$/,
