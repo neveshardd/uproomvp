@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.conversationRoutes = conversationRoutes;
 const zod_1 = require("zod");
-const prisma_1 = require("../lib/prisma");
+const database_1 = require("../lib/database");
 const auth_1 = require("../lib/auth");
 const createConversationSchema = zod_1.z.object({
     title: zod_1.z.string().min(1),
@@ -23,7 +23,7 @@ async function conversationRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             // Verificar se o usuário pertence à empresa
-            const membership = await prisma_1.prisma.companyMember.findFirst({
+            const membership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId,
                     userId,
@@ -32,7 +32,7 @@ async function conversationRoutes(fastify) {
             if (!membership) {
                 return reply.status(403).send({ error: 'Usuário não pertence à empresa' });
             }
-            const conversation = await prisma_1.prisma.conversation.create({
+            const conversation = await database_1.prisma.conversation.create({
                 data: {
                     title,
                     companyId,
@@ -42,7 +42,7 @@ async function conversationRoutes(fastify) {
             });
             // Adicionar participantes
             const participants = [userId, ...(participantIds || [])];
-            await prisma_1.prisma.conversationParticipant.createMany({
+            await database_1.prisma.conversationParticipant.createMany({
                 data: participants.map(participantId => ({
                     conversationId: conversation.id,
                     userId: participantId,
@@ -72,7 +72,7 @@ async function conversationRoutes(fastify) {
             if (companyId) {
                 whereClause.companyId = companyId;
             }
-            const conversations = await prisma_1.prisma.conversation.findMany({
+            const conversations = await database_1.prisma.conversation.findMany({
                 where: whereClause,
                 include: {
                     participants: {
@@ -104,7 +104,7 @@ async function conversationRoutes(fastify) {
             const { id } = request.params;
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
-            const conversation = await prisma_1.prisma.conversation.findFirst({
+            const conversation = await database_1.prisma.conversation.findFirst({
                 where: {
                     id,
                     participants: {
@@ -146,7 +146,7 @@ async function conversationRoutes(fastify) {
             const userId = request.user.id;
             const updateData = updateConversationSchema.parse(request.body);
             // Verificar se o usuário é participante da conversa
-            const participation = await prisma_1.prisma.conversationParticipant.findFirst({
+            const participation = await database_1.prisma.conversationParticipant.findFirst({
                 where: {
                     conversationId: id,
                     userId,
@@ -155,7 +155,7 @@ async function conversationRoutes(fastify) {
             if (!participation) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
-            const conversation = await prisma_1.prisma.conversation.update({
+            const conversation = await database_1.prisma.conversation.update({
                 where: { id },
                 data: updateData,
             });
@@ -175,7 +175,7 @@ async function conversationRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const currentUserId = request.user.id;
             // Verificar se o usuário atual é participante da conversa
-            const participation = await prisma_1.prisma.conversationParticipant.findFirst({
+            const participation = await database_1.prisma.conversationParticipant.findFirst({
                 where: {
                     conversationId: id,
                     userId: currentUserId,
@@ -185,7 +185,7 @@ async function conversationRoutes(fastify) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
             // Adicionar novo participante
-            await prisma_1.prisma.conversationParticipant.create({
+            await database_1.prisma.conversationParticipant.create({
                 data: {
                     conversationId: id,
                     userId: participantId,

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.userRoutes = userRoutes;
-const prisma_1 = require("../lib/prisma");
+const database_1 = require("../lib/database");
 const auth_1 = require("../lib/auth");
 async function userRoutes(fastify) {
     // Obter perfil do usuário
@@ -11,7 +11,7 @@ async function userRoutes(fastify) {
         try {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
-            const user = await prisma_1.prisma.user.findUnique({
+            const user = await database_1.prisma.user.findUnique({
                 where: { id: userId },
                 include: {
                     companyMemberships: {
@@ -39,7 +39,7 @@ async function userRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             // Verificar se o usuário é membro da empresa
-            const membership = await prisma_1.prisma.companyMember.findFirst({
+            const membership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId,
                     userId,
@@ -48,7 +48,7 @@ async function userRoutes(fastify) {
             if (!membership) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
-            const members = await prisma_1.prisma.companyMember.findMany({
+            const members = await database_1.prisma.companyMember.findMany({
                 where: { companyId },
                 include: {
                     user: true,
@@ -70,7 +70,7 @@ async function userRoutes(fastify) {
             if (!email) {
                 return reply.status(400).send({ error: 'Email é obrigatório' });
             }
-            const users = await prisma_1.prisma.user.findMany({
+            const users = await database_1.prisma.user.findMany({
                 where: {
                     email: {
                         contains: email,
@@ -80,7 +80,7 @@ async function userRoutes(fastify) {
             });
             // Se companyId foi fornecido, filtrar usuários que não são membros
             if (companyId) {
-                const companyMembers = await prisma_1.prisma.companyMember.findMany({
+                const companyMembers = await database_1.prisma.companyMember.findMany({
                     where: { companyId },
                     select: { userId: true },
                 });
@@ -102,7 +102,7 @@ async function userRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             const { name, email } = request.body;
-            const user = await prisma_1.prisma.user.update({
+            const user = await database_1.prisma.user.update({
                 where: { id: userId },
                 data: {
                     ...(name && { name }),

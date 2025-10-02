@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticateUser = void 0;
 require("dotenv/config");
 const zod_1 = require("zod");
-const prisma_1 = require("./prisma");
+const database_1 = require("./database");
 const supabase_1 = require("./supabase");
 const authHeaderSchema = zod_1.z.object({
     authorization: zod_1.z.string().regex(/^Bearer .+$/),
@@ -20,7 +20,7 @@ const authenticateUser = async (request, reply) => {
             return reply.status(401).send({ error: 'Token inválido' });
         }
         // Buscar dados do usuário no banco local
-        const dbUser = await prisma_1.prisma.user.findUnique({
+        const dbUser = await database_1.prisma.user.findUnique({
             where: { id: user.id },
         });
         if (!dbUser) {

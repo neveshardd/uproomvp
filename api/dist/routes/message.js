@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.messageRoutes = messageRoutes;
 const zod_1 = require("zod");
-const prisma_1 = require("../lib/prisma");
+const database_1 = require("../lib/database");
 const auth_1 = require("../lib/auth");
 const createMessageSchema = zod_1.z.object({
     content: zod_1.z.string().min(1),
@@ -22,7 +22,7 @@ async function messageRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             // Verificar se o usuário é participante da conversa
-            const participation = await prisma_1.prisma.conversationParticipant.findFirst({
+            const participation = await database_1.prisma.conversationParticipant.findFirst({
                 where: {
                     conversationId,
                     userId,
@@ -31,7 +31,7 @@ async function messageRoutes(fastify) {
             if (!participation) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
-            const message = await prisma_1.prisma.message.create({
+            const message = await database_1.prisma.message.create({
                 data: {
                     content,
                     conversationId,
@@ -43,7 +43,7 @@ async function messageRoutes(fastify) {
                 },
             });
             // Atualizar timestamp da conversa
-            await prisma_1.prisma.conversation.update({
+            await database_1.prisma.conversation.update({
                 where: { id: conversationId },
                 data: { updatedAt: new Date() },
             });
@@ -63,7 +63,7 @@ async function messageRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             // Verificar se o usuário é participante da conversa
-            const participation = await prisma_1.prisma.conversationParticipant.findFirst({
+            const participation = await database_1.prisma.conversationParticipant.findFirst({
                 where: {
                     conversationId,
                     userId,
@@ -75,7 +75,7 @@ async function messageRoutes(fastify) {
             const pageNum = parseInt(page);
             const limitNum = parseInt(limit);
             const skip = (pageNum - 1) * limitNum;
-            const messages = await prisma_1.prisma.message.findMany({
+            const messages = await database_1.prisma.message.findMany({
                 where: { conversationId },
                 include: {
                     user: true,
@@ -84,7 +84,7 @@ async function messageRoutes(fastify) {
                 skip,
                 take: limitNum,
             });
-            const total = await prisma_1.prisma.message.count({
+            const total = await database_1.prisma.message.count({
                 where: { conversationId },
             });
             return {
@@ -109,7 +109,7 @@ async function messageRoutes(fastify) {
             const { id } = request.params;
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
-            const message = await prisma_1.prisma.message.findFirst({
+            const message = await database_1.prisma.message.findFirst({
                 where: {
                     id,
                     conversation: {
@@ -142,7 +142,7 @@ async function messageRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             const { content } = updateMessageSchema.parse(request.body);
-            const message = await prisma_1.prisma.message.findFirst({
+            const message = await database_1.prisma.message.findFirst({
                 where: {
                     id,
                     userId,
@@ -151,7 +151,7 @@ async function messageRoutes(fastify) {
             if (!message) {
                 return reply.status(404).send({ error: 'Mensagem não encontrada' });
             }
-            const updatedMessage = await prisma_1.prisma.message.update({
+            const updatedMessage = await database_1.prisma.message.update({
                 where: { id },
                 data: { content },
                 include: {
@@ -172,7 +172,7 @@ async function messageRoutes(fastify) {
             const { id } = request.params;
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
-            const message = await prisma_1.prisma.message.findFirst({
+            const message = await database_1.prisma.message.findFirst({
                 where: {
                     id,
                     userId,
@@ -181,7 +181,7 @@ async function messageRoutes(fastify) {
             if (!message) {
                 return reply.status(404).send({ error: 'Mensagem não encontrada' });
             }
-            await prisma_1.prisma.message.delete({
+            await database_1.prisma.message.delete({
                 where: { id },
             });
             return { success: true };

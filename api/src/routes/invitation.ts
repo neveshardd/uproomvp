@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/database';
 import { authenticateUser } from '../lib/auth';
 
 const createInvitationSchema = z.object({

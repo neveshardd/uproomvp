@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.companyRoutes = companyRoutes;
 const zod_1 = require("zod");
-const prisma_1 = require("../lib/prisma");
+const database_1 = require("../lib/database");
 const auth_1 = require("../lib/auth");
 const createCompanySchema = zod_1.z.object({
     name: zod_1.z.string().min(1, 'Company name is required'),
@@ -117,13 +117,13 @@ async function companyRoutes(fastify) {
             const userId = request.user.id;
             console.log('Parsed data:', { name, subdomain, description, userId });
             // Verificar se o subdomínio já existe
-            const existingCompany = await prisma_1.prisma.company.findUnique({
+            const existingCompany = await database_1.prisma.company.findUnique({
                 where: { subdomain },
             });
             if (existingCompany) {
                 return reply.status(400).send({ error: 'Subdomínio já está em uso' });
             }
-            const company = await prisma_1.prisma.company.create({
+            const company = await database_1.prisma.company.create({
                 data: {
                     name,
                     subdomain,
@@ -132,7 +132,7 @@ async function companyRoutes(fastify) {
                 },
             });
             // Adicionar o criador como membro
-            await prisma_1.prisma.companyMember.create({
+            await database_1.prisma.companyMember.create({
                 data: {
                     companyId: company.id,
                     userId,
@@ -153,7 +153,7 @@ async function companyRoutes(fastify) {
         try {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
-            const companies = await prisma_1.prisma.company.findMany({
+            const companies = await database_1.prisma.company.findMany({
                 where: {
                     members: {
                         some: {
@@ -187,7 +187,7 @@ async function companyRoutes(fastify) {
             if (request.user.id !== userId) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
-            const companies = await prisma_1.prisma.company.findMany({
+            const companies = await database_1.prisma.company.findMany({
                 where: {
                     members: {
                         some: {
@@ -218,7 +218,7 @@ async function companyRoutes(fastify) {
             const { id } = request.params;
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
-            const company = await prisma_1.prisma.company.findFirst({
+            const company = await database_1.prisma.company.findFirst({
                 where: {
                     id,
                     members: {
@@ -254,7 +254,7 @@ async function companyRoutes(fastify) {
             const userId = request.user.id;
             const updateData = updateCompanySchema.parse(request.body);
             // Verificar se o usuário é owner da empresa
-            const membership = await prisma_1.prisma.companyMember.findFirst({
+            const membership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId: id,
                     userId,
@@ -264,7 +264,7 @@ async function companyRoutes(fastify) {
             if (!membership) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
-            const company = await prisma_1.prisma.company.update({
+            const company = await database_1.prisma.company.update({
                 where: { id },
                 data: updateData,
             });
@@ -317,7 +317,7 @@ async function companyRoutes(fastify) {
             if (!subdomain || subdomain.trim() === '') {
                 return reply.status(400).send({ error: 'Subdomínio é obrigatório' });
             }
-            const existingCompany = await prisma_1.prisma.company.findUnique({
+            const existingCompany = await database_1.prisma.company.findUnique({
                 where: { subdomain: subdomain.trim() },
             });
             return { available: !existingCompany };
@@ -402,7 +402,7 @@ async function companyRoutes(fastify) {
             if (!subdomain || subdomain.trim() === '') {
                 return reply.status(400).send({ error: 'Subdomínio é obrigatório' });
             }
-            const company = await prisma_1.prisma.company.findUnique({
+            const company = await database_1.prisma.company.findUnique({
                 where: { subdomain: subdomain.trim() },
                 include: {
                     members: {
@@ -437,7 +437,7 @@ async function companyRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             // Verificar se o usuário é membro da empresa
-            const membership = await prisma_1.prisma.companyMember.findFirst({
+            const membership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId: id,
                     userId,
@@ -446,7 +446,7 @@ async function companyRoutes(fastify) {
             if (!membership) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
-            const members = await prisma_1.prisma.companyMember.findMany({
+            const members = await database_1.prisma.companyMember.findMany({
                 where: { companyId: id },
                 include: {
                     user: {
@@ -475,7 +475,7 @@ async function companyRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const authenticatedUserId = request.user.id;
             // Verificar se o usuário autenticado é membro da empresa
-            const membership = await prisma_1.prisma.companyMember.findFirst({
+            const membership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId: id,
                     userId: authenticatedUserId,
@@ -485,7 +485,7 @@ async function companyRoutes(fastify) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
             // Buscar o role do usuário solicitado
-            const userMembership = await prisma_1.prisma.companyMember.findFirst({
+            const userMembership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId: id,
                     userId,

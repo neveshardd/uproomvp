@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { prisma } from '../lib/prisma';
+import { prisma } from '../lib/database';
 import { authenticateUser } from '../lib/auth';
 
 export async function userRoutes(fastify: FastifyInstance) {

@@ -40,7 +40,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: data.user.email!,
         fullName: data.user.user_metadata?.full_name || data.user.user_metadata?.name,
         avatar: data.user.user_metadata?.avatar_url,
-        lastLoginAt: new Date(),
       },
       create: { 
         id: data.user.id,
@@ -48,7 +47,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         fullName: data.user.user_metadata?.full_name || data.user.user_metadata?.name,
         avatar: data.user.user_metadata?.avatar_url,
         password: '', // Não precisamos armazenar senha com Supabase
-        lastLoginAt: new Date(),
       },
     });
 
@@ -92,7 +90,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: data.user.email!,
         fullName: fullName,
         password: '', // Não precisamos armazenar senha com Supabase
-        createdAt: new Date(),
       },
     });
 
@@ -180,7 +177,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     });
 
     if (!dbUser) {
-      throw new NotFoundError('Usuário não encontrado');
+      return reply.status(404).send({ error: 'Usuário não encontrado' });
     }
 
     return {
@@ -189,7 +186,6 @@ export async function authRoutes(fastify: FastifyInstance) {
         email: dbUser.email,
         fullName: dbUser.fullName,
         avatar: dbUser.avatar,
-        lastLoginAt: dbUser.lastLoginAt,
         createdAt: dbUser.createdAt,
       },
     };

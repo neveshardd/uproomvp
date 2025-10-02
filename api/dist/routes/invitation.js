@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.invitationRoutes = invitationRoutes;
 const zod_1 = require("zod");
-const prisma_1 = require("../lib/prisma");
+const database_1 = require("../lib/database");
 const auth_1 = require("../lib/auth");
 const createInvitationSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
@@ -22,7 +22,7 @@ async function invitationRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             // Verificar se o usuário é owner/admin da empresa
-            const membership = await prisma_1.prisma.companyMember.findFirst({
+            const membership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId,
                     userId,
@@ -33,11 +33,11 @@ async function invitationRoutes(fastify) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
             // Verificar se o usuário já é membro
-            const existingUser = await prisma_1.prisma.user.findUnique({
+            const existingUser = await database_1.prisma.user.findUnique({
                 where: { email },
             });
             if (existingUser) {
-                const existingMembership = await prisma_1.prisma.companyMember.findFirst({
+                const existingMembership = await database_1.prisma.companyMember.findFirst({
                     where: {
                         companyId,
                         userId: existingUser.id,
@@ -48,7 +48,7 @@ async function invitationRoutes(fastify) {
                 }
             }
             // Verificar se já existe convite pendente
-            const existingInvitation = await prisma_1.prisma.invitation.findFirst({
+            const existingInvitation = await database_1.prisma.invitation.findFirst({
                 where: {
                     email,
                     companyId,
@@ -58,7 +58,7 @@ async function invitationRoutes(fastify) {
             if (existingInvitation) {
                 return reply.status(400).send({ error: 'Convite já enviado para este email' });
             }
-            const invitation = await prisma_1.prisma.invitation.create({
+            const invitation = await database_1.prisma.invitation.create({
                 data: {
                     email,
                     companyId,
@@ -85,7 +85,7 @@ async function invitationRoutes(fastify) {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
             // Verificar se o usuário é membro da empresa
-            const membership = await prisma_1.prisma.companyMember.findFirst({
+            const membership = await database_1.prisma.companyMember.findFirst({
                 where: {
                     companyId,
                     userId,
@@ -94,7 +94,7 @@ async function invitationRoutes(fastify) {
             if (!membership) {
                 return reply.status(403).send({ error: 'Acesso negado' });
             }
-            const invitations = await prisma_1.prisma.invitation.findMany({
+            const invitations = await database_1.prisma.invitation.findMany({
                 where: { companyId },
                 include: {
                     invitedBy: true,
@@ -111,7 +111,7 @@ async function invitationRoutes(fastify) {
     fastify.post('/accept', async (request, reply) => {
         try {
             const { token } = acceptInvitationSchema.parse(request.body);
-            const invitation = await prisma_1.prisma.invitation.findUnique({
+            const invitation = await database_1.prisma.invitation.findUnique({
                 where: { token },
                 include: {
                     company: true,
@@ -134,7 +134,7 @@ async function invitationRoutes(fastify) {
             // e extrair o user ID dele
             const userId = 'user-id-from-jwt-token'; // Substitua pela validação real
             // Adicionar usuário à empresa
-            await prisma_1.prisma.companyMember.create({
+            await database_1.prisma.companyMember.create({
                 data: {
                     companyId: invitation.companyId,
                     userId,
@@ -142,7 +142,7 @@ async function invitationRoutes(fastify) {
                 },
             });
             // Marcar convite como aceito
-            await prisma_1.prisma.invitation.update({
+            await database_1.prisma.invitation.update({
                 where: { id: invitation.id },
                 data: { status: 'ACCEPTED' },
             });
@@ -160,7 +160,7 @@ async function invitationRoutes(fastify) {
             const { id } = request.params;
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
             const userId = request.user.id;
-            const invitation = await prisma_1.prisma.invitation.findFirst({
+            const invitation = await database_1.prisma.invitation.findFirst({
                 where: {
                     id,
                     invitedById: userId,
@@ -169,7 +169,7 @@ async function invitationRoutes(fastify) {
             if (!invitation) {
                 return reply.status(404).send({ error: 'Convite não encontrado' });
             }
-            await prisma_1.prisma.invitation.delete({
+            await database_1.prisma.invitation.delete({
                 where: { id },
             });
             return { success: true };
