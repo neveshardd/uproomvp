@@ -9,7 +9,7 @@ export interface SubdomainValidation {
 export class SubdomainService {
   // Reserved subdomains that cannot be used
   private static readonly RESERVED_SUBDOMAINS = [
-    'www', 'api', 'admin', 'app', 'mail', 'ftp', 'blog', 'shop', 'store',
+    'api', 'admin', 'app', 'mail', 'ftp', 'blog', 'shop', 'store',
     'support', 'help', 'docs', 'dev', 'test', 'staging', 'prod', 'production',
     'dashboard', 'portal', 'login', 'register', 'auth', 'account', 'profile',
     'settings', 'config', 'status', 'health', 'ping', 'webhook', 'callback',
@@ -160,9 +160,14 @@ export class SubdomainService {
       return null
     }
     
-    // For production with custom domain (subdomain.uproom.com)
+    // For production with custom domain (subdomain.starvibe.space)
     if (parts.length >= 3) {
-      return parts[0]
+      const subdomain = parts[0]
+      // Treat 'www' as main domain, not a workspace
+      if (subdomain === 'www') {
+        return null
+      }
+      return subdomain
     }
     
     // For development with custom domains
