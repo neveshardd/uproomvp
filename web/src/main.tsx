@@ -4,7 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { queryClient } from "./lib/queryClient";
 import Devtools from "./components/ReactQueryDevtools";
-import "./lib/redirect-fix"; // Corrige redirecionamentos infinitos
+// Removido fix de redirecionamento no cliente para evitar loops.
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
