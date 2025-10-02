@@ -94,6 +94,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } else {
             // Token is invalid, check if we're on a subdomain
             if (CrossDomainAuth.isSubdomain()) {
+              // Check if we're already on an auth page to prevent loops
+              const currentPath = window.location.pathname
+              if (currentPath.includes('/login') || currentPath.includes('/register')) {
+                console.warn('Already on auth page, skipping redirect to prevent loop')
+                CrossDomainAuth.clearAuthToken()
+                return
+              }
               // On subdomain without valid token, redirect to main domain for auth
               CrossDomainAuth.redirectToMainDomainForAuth()
               return
@@ -105,6 +112,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
           // No token, check if we're on a subdomain
           if (CrossDomainAuth.isSubdomain()) {
+            // Check if we're already on an auth page to prevent loops
+            const currentPath = window.location.pathname
+            if (currentPath.includes('/login') || currentPath.includes('/register')) {
+              console.warn('Already on auth page, skipping redirect to prevent loop')
+              return
+            }
             // On subdomain without token, redirect to main domain for auth
             CrossDomainAuth.redirectToMainDomainForAuth()
             return
