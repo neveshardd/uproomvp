@@ -129,9 +129,27 @@ export class CrossDomainAuth {
     const mainDomain = this.getMainDomain()
     const protocol = window.location.protocol
     const currentPath = window.location.pathname
-    const returnUrl = encodeURIComponent(`${protocol}//${window.location.host}${currentPath}`)
+    const currentHost = window.location.host
     
-    window.location.href = `${protocol}//${mainDomain}/login?returnUrl=${returnUrl}`
+    // Validate the current host to avoid malformed URLs
+    if (!currentHost || currentHost.length < 3) {
+      console.error('Invalid host detected:', currentHost)
+      // Fallback to main domain without return URL
+      window.location.href = `${protocol}//${mainDomain}/login`
+      return
+    }
+    
+    const returnUrl = encodeURIComponent(`${protocol}//${currentHost}${currentPath}`)
+    
+    // Validate the return URL before using it
+    try {
+      new URL(decodeURIComponent(returnUrl))
+      window.location.href = `${protocol}//${mainDomain}/login?returnUrl=${returnUrl}`
+    } catch (error) {
+      console.error('Invalid return URL:', returnUrl, error)
+      // Fallback to main domain without return URL
+      window.location.href = `${protocol}//${mainDomain}/login`
+    }
   }
 
   /**
@@ -142,9 +160,31 @@ export class CrossDomainAuth {
     const returnUrl = urlParams.get('returnUrl')
     
     if (returnUrl) {
-      // Decode and redirect to the original subdomain
-      const decodedUrl = decodeURIComponent(returnUrl)
-      window.location.href = decodedUrl
+      try {
+        // Decode and validate the return URL
+        const decodedUrl = decodeURIComponent(returnUrl)
+        const url = new URL(decodedUrl)
+        
+        // Validate that the return URL is from a trusted domain
+        const currentHost = window.location.hostname
+        const returnHost = url.hostname
+        
+        // Allow redirects to subdomains of the same base domain
+        const isTrustedDomain = returnHost === currentHost || 
+                               returnHost.endsWith('.starvibe.space') ||
+                               returnHost.endsWith('.uproom.com') ||
+                               returnHost.includes('localhost')
+        
+        if (isTrustedDomain) {
+          window.location.href = decodedUrl
+        } else {
+          console.warn('Untrusted return URL:', decodedUrl)
+          window.location.href = '/maindashboard'
+        }
+      } catch (error) {
+        console.error('Invalid return URL:', returnUrl, error)
+        window.location.href = '/maindashboard'
+      }
     } else {
       // Default redirect to main dashboard
       window.location.href = '/maindashboard'

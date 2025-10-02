@@ -102,8 +102,30 @@ const Login = () => {
             const returnUrl = urlParams.get('returnUrl')
             
             if (returnUrl) {
-              // Redirect to the original subdomain
-              window.location.href = decodeURIComponent(returnUrl)
+              try {
+                // Validate the return URL before redirecting
+                const decodedUrl = decodeURIComponent(returnUrl)
+                const url = new URL(decodedUrl)
+                
+                // Validate that the return URL is from a trusted domain
+                const currentHost = window.location.hostname
+                const returnHost = url.hostname
+                
+                const isTrustedDomain = returnHost === currentHost || 
+                                     returnHost.endsWith('.starvibe.space') ||
+                                     returnHost.endsWith('.uproom.com') ||
+                                     returnHost.includes('localhost')
+                
+                if (isTrustedDomain) {
+                  window.location.href = decodedUrl
+                } else {
+                  console.warn('Untrusted return URL:', decodedUrl)
+                  navigate('/maindashboard')
+                }
+              } catch (error) {
+                console.error('Invalid return URL:', returnUrl, error)
+                navigate('/maindashboard')
+              }
             } else {
               // Default redirect to main dashboard
               navigate('/maindashboard')
