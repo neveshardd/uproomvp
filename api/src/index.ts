@@ -1,11 +1,12 @@
 import 'dotenv/config';
 import Fastify from 'fastify';
-import { env } from './lib/env';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
-import { PrismaClient } from '@prisma/client';
+import { config } from './lib/config';
+import { prisma, disconnectDatabase, checkDatabaseHealth } from './lib/database';
+import { handleError } from './lib/errors';
 import { authRoutes } from './routes/auth';
 import { companyRoutes } from './routes/company';
 import { conversationRoutes } from './routes/conversation';
@@ -14,14 +15,19 @@ import { invitationRoutes } from './routes/invitation';
 import { userRoutes } from './routes/user';
 import { presenceRoutes } from './routes/presence';
 
-const prisma = new PrismaClient();
-
 const fastify = Fastify({
   logger: {
-    transport: {
+    level: config.NODE_ENV === 'production' ? 'warn' : 'info',
+    transport: config.NODE_ENV === 'development' ? {
       target: 'pino-pretty',
-    }
+      options: {
+        colorize: true,
+        translateTime: 'HH:MM:ss Z',
+        ignore: 'pid,hostname',
+      }
+    } : undefined,
   },
+  disableRequestLogging: config.NODE_ENV === 'production',
 });
 
 // Swagger configuration
@@ -36,8 +42,8 @@ fastify.register(swagger, {
         email: 'support@uproom.com'
       }
     },
-    host: env.NODE_ENV === 'production' ? 'api.uproom.com' : 'localhost:3333',
-    schemes: env.NODE_ENV === 'production' ? ['https'] : ['http'],
+    host: config.NODE_ENV === 'production' ? 'api.uproom.com' : 'localhost:3333',
+    schemes: config.NODE_ENV === 'production' ? ['https'] : ['http'],
     consumes: ['application/json'],
     produces: ['application/json'],
     tags: [
@@ -74,31 +80,38 @@ fastify.register(swaggerUi, {
   transformSpecification: (swaggerObject, request, reply) => { return swaggerObject },
   transformSpecificationClone: true
 });
-// Configuração do CORS usando variáveis de ambiente
-const corsOrigins = env.CORS_ORIGIN 
-  ? env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-  : [
-      'http://localhost:8080',
-      'http://localhost:5173',
-      'http://127.0.0.1:8080',
-      'http://127.0.0.1:5173',
-      'https://uproom.com',
-      'http://uproom.com',
-      'https://www.starvibe.space',
-      'https://starvibe.space',
-      // Subdomínios locais para desenvolvimento
-      /^http:\/\/[a-zA-Z0-9-]+\.localhost:8080$/,
-      /^http:\/\/[a-zA-Z0-9-]+\.starvibe\.space$/,
-      /^http:\/\/[a-zA-Z0-9-]+\.localhost:5173$/,
-      /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:8080$/,
-      /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:5173$/,
-      // Subdomínios de produção
-      /^https:\/\/[a-zA-Z0-9-]+\.uproom\.com$/,
-      /^http:\/\/[a-zA-Z0-9-]+\.uproom\.com$/
-    ];
+// Configuração otimizada do CORS
+const getCorsOrigins = () => {
+  if (config.CORS_ORIGIN) {
+    return config.CORS_ORIGIN.split(',').map(origin => origin.trim());
+  }
+
+  const defaultOrigins = [
+    'http://localhost:8080',
+    'http://localhost:5173',
+    'http://127.0.0.1:8080',
+    'http://127.0.0.1:5173',
+    'https://uproom.com',
+    'http://uproom.com',
+    'https://www.starvibe.space',
+    'https://starvibe.space',
+  ];
+
+  const regexOrigins = [
+    /^http:\/\/[a-zA-Z0-9-]+\.localhost:8080$/,
+    /^http:\/\/[a-zA-Z0-9-]+\.starvibe\.space$/,
+    /^http:\/\/[a-zA-Z0-9-]+\.localhost:5173$/,
+    /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:8080$/,
+    /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:5173$/,
+    /^https:\/\/[a-zA-Z0-9-]+\.uproom\.com$/,
+    /^http:\/\/[a-zA-Z0-9-]+\.uproom\.com$/
+  ];
+
+  return [...defaultOrigins, ...regexOrigins];
+};
 
 fastify.register(cors, {
-  origin: corsOrigins,
+  origin: getCorsOrigins(),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
   allowedHeaders: [
@@ -112,9 +125,10 @@ fastify.register(cors, {
     'X-Supabase-Auth'
   ]
 });
+
 fastify.register(rateLimit, {
-  max: env.RATE_LIMIT_MAX,
-  timeWindow: env.RATE_LIMIT_TIME_WINDOW,
+  max: config.RATE_LIMIT_MAX,
+  timeWindow: config.RATE_LIMIT_TIME_WINDOW,
 });
 
 // Register routes
@@ -126,9 +140,31 @@ fastify.register(invitationRoutes, { prefix: '/invitations' });
 fastify.register(userRoutes, { prefix: '/users' });
 fastify.register(presenceRoutes, { prefix: '/presence' });
 
-// Health check
-fastify.get('/health', async () => {
-  return { status: 'ok', timestamp: new Date().toISOString() };
+// Health check otimizado
+fastify.get('/health', async (request, reply) => {
+  try {
+    const dbHealth = await checkDatabaseHealth();
+    
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: dbHealth ? 'healthy' : 'unhealthy',
+        api: 'healthy'
+      },
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+    };
+  } catch (error) {
+    return reply.status(503).send({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      services: {
+        database: 'unhealthy',
+        api: 'healthy'
+      }
+    });
+  }
 });
 
 // Swagger JSON endpoint
@@ -136,21 +172,63 @@ fastify.get('/swagger.json', async () => {
   return fastify.swagger();
 });
 
-// Graceful shutdown
-const gracefulShutdown = async () => {
-  await fastify.close();
-  await prisma.$disconnect();
-  process.exit(0);
+// Graceful shutdown otimizado
+const gracefulShutdown = async (signal: string) => {
+  console.log(`🔄 Recebido sinal ${signal}, iniciando shutdown graceful...`);
+  
+  try {
+    // Parar de aceitar novas conexões
+    await fastify.close();
+    console.log('✅ Servidor HTTP encerrado');
+    
+    // Desconectar do banco de dados
+    await disconnectDatabase();
+    
+    console.log('✅ Shutdown concluído com sucesso');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Erro durante shutdown:', error);
+    process.exit(1);
+  }
 };
 
-process.on('SIGTERM', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
+// Registrar handlers de shutdown
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
+// Handler para erros não capturados
+process.on('uncaughtException', (error) => {
+  console.error('❌ Erro não capturado:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promise rejeitada não tratada:', reason);
+  gracefulShutdown('UNHANDLED_REJECTION');
+});
+
+// Inicialização otimizada
 const start = async () => {
   try {
-    await fastify.listen({ port: env.PORT, host: '0.0.0.0' });
+    console.log('🚀 Iniciando servidor UpRoom API...');
+    
+    // Verificar saúde do banco antes de iniciar
+    const dbHealth = await checkDatabaseHealth();
+    if (!dbHealth) {
+      throw new Error('❌ Banco de dados não está acessível');
+    }
+    
+    await fastify.listen({ 
+      port: config.PORT, 
+      host: '0.0.0.0' 
+    });
+    
+    console.log(`✅ Servidor rodando em http://localhost:${config.PORT}`);
+    console.log(`📚 Documentação disponível em http://localhost:${config.PORT}/docs`);
+    console.log(`🏥 Health check em http://localhost:${config.PORT}/health`);
+    
   } catch (err) {
-    fastify.log.error(err);
+    console.error('❌ Erro ao iniciar servidor:', err);
     process.exit(1);
   }
 };
