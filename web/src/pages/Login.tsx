@@ -29,6 +29,34 @@ const Login = () => {
   const { signIn } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
+  
+  // Check for redirect loops on component mount
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const returnUrl = urlParams.get('returnUrl')
+    
+    if (returnUrl) {
+      try {
+        const decodedUrl = decodeURIComponent(returnUrl)
+        const url = new URL(decodedUrl)
+        
+        // If return URL points to login/register pages, remove it to prevent loops
+        if (url.pathname.includes('/login') || url.pathname.includes('/register')) {
+          console.warn('Detected redirect loop, removing returnUrl parameter')
+          const newUrl = new URL(window.location.href)
+          newUrl.searchParams.delete('returnUrl')
+          window.history.replaceState({}, '', newUrl.toString())
+        }
+      } catch (error) {
+        console.error('Invalid return URL detected:', returnUrl, error)
+        // Remove invalid return URL
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('returnUrl')
+        window.history.replaceState({}, '', newUrl.toString())
+      }
+    }
+  }, [])
+  
   const { subdomain, company, isValidWorkspace } = useSubdomain()
 
   const form = useForm<LoginFormData>({
@@ -106,6 +134,13 @@ const Login = () => {
                 // Validate the return URL before redirecting
                 const decodedUrl = decodeURIComponent(returnUrl)
                 const url = new URL(decodedUrl)
+                
+                // Prevent redirect loops by checking if return URL points to auth pages
+                if (url.pathname.includes('/login') || url.pathname.includes('/register')) {
+                  console.warn('Return URL points to auth page, redirecting to dashboard to prevent loop')
+                  navigate('/maindashboard')
+                  return
+                }
                 
                 // Validate that the return URL is from a trusted domain
                 const currentHost = window.location.hostname

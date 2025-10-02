@@ -139,11 +139,27 @@ export class CrossDomainAuth {
       return
     }
     
+    // Prevent redirect loops by checking if we're already on a login page
+    if (currentPath.includes('/login') || currentPath.includes('/register')) {
+      console.warn('Already on auth page, redirecting without return URL to prevent loop')
+      window.location.href = `${protocol}//${mainDomain}/login`
+      return
+    }
+    
     const returnUrl = encodeURIComponent(`${protocol}//${currentHost}${currentPath}`)
     
     // Validate the return URL before using it
     try {
-      new URL(decodeURIComponent(returnUrl))
+      const decodedUrl = decodeURIComponent(returnUrl)
+      const url = new URL(decodedUrl)
+      
+      // Additional check: prevent redirect to login pages
+      if (url.pathname.includes('/login') || url.pathname.includes('/register')) {
+        console.warn('Return URL points to auth page, redirecting without return URL to prevent loop')
+        window.location.href = `${protocol}//${mainDomain}/login`
+        return
+      }
+      
       window.location.href = `${protocol}//${mainDomain}/login?returnUrl=${returnUrl}`
     } catch (error) {
       console.error('Invalid return URL:', returnUrl, error)
@@ -164,6 +180,13 @@ export class CrossDomainAuth {
         // Decode and validate the return URL
         const decodedUrl = decodeURIComponent(returnUrl)
         const url = new URL(decodedUrl)
+        
+        // Prevent redirect loops by checking if return URL points to auth pages
+        if (url.pathname.includes('/login') || url.pathname.includes('/register')) {
+          console.warn('Return URL points to auth page, redirecting to dashboard to prevent loop')
+          window.location.href = '/maindashboard'
+          return
+        }
         
         // Validate that the return URL is from a trusted domain
         const currentHost = window.location.hostname
