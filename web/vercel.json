@@ -8,14 +8,6 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "has": [
-        { "type": "host", "value": "www.starvibe.space" }
-      ],
-      "status": 308,
-      "headers": { "Location": "https://starvibe.space/$1" }
-    },
-    {
       "src": "/assets/(.*)",
       "dest": "/assets/$1"
     },
@@ -42,10 +34,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "dist/**": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  ]
 }

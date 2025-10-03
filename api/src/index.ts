@@ -91,20 +91,18 @@ const getCorsOrigins = () => {
     'http://localhost:5173',
     'http://127.0.0.1:8080',
     'http://127.0.0.1:5173',
-    'https://uproom.com',
-    'http://uproom.com',
-    'https://www.starvibe.space',
+    // Domínio raiz sem www (frontend principal)
     'https://starvibe.space',
   ];
 
   const regexOrigins = [
+    // Subdomínios de workspaces em produção
+    /^https:\/\/[a-zA-Z0-9-]+\.starvibe\.space$/,
+    // Subdomínios de workspaces em dev local
     /^http:\/\/[a-zA-Z0-9-]+\.localhost:8080$/,
-    /^http:\/\/[a-zA-Z0-9-]+\.starvibe\.space$/,
     /^http:\/\/[a-zA-Z0-9-]+\.localhost:5173$/,
     /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:8080$/,
-    /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:5173$/,
-    /^https:\/\/[a-zA-Z0-9-]+\.uproom\.com$/,
-    /^http:\/\/[a-zA-Z0-9-]+\.uproom\.com$/
+    /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:5173$/
   ];
 
   return [...defaultOrigins, ...regexOrigins];

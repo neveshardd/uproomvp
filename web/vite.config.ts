@@ -9,28 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    cors: {
-      origin: [
-        'http://localhost:8080',
-        'https://localhost:8080',
-        /^https:\/\/.*\.starvibe\.space$/,
-        /^http:\/\/.*\.starvibe\.space$/,
-        /^https:\/\/.*\.uproom\.com$/,
-        /^http:\/\/.*\.localhost:8080$/,
-        /^https:\/\/.*\.localhost:8080$/
-      ],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Requested-With',
-        'Accept',
-        'Origin',
-        'X-Client-Info',
-        'apikey'
-      ]
-    },
+    cors: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
