@@ -19,6 +19,8 @@ export interface Company {
   createdAt: Date;
   updatedAt: Date;
   ownerId: string;
+  userRole?: UserRole;
+  isOwner?: boolean;
 }
 
 export interface CompanyMember {
