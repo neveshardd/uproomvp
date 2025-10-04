@@ -25,6 +25,7 @@ interface Message {
 interface Conversation {
   id: string;
   title: string;
+  description?: string;
   type: 'DIRECT' | 'GROUP';
   companyId: string;
   createdAt: string;
@@ -452,7 +453,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
+      console.log('🔍 ChatContext: Conversa criada:', data.conversation);
       dispatch({ type: 'ADD_CONVERSATION', payload: data.conversation });
+      
+      // Auto-selecionar a conversa recém-criada
+      console.log('🔍 ChatContext: Auto-selecionando conversa:', data.conversation.id);
+      dispatch({ type: 'SET_SELECTED_CONVERSATION', payload: data.conversation });
+      
       return data.conversation;
     } catch (error) {
       console.error('❌ ChatContext: Erro ao criar conversa:', error);

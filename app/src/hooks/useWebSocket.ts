@@ -22,11 +22,19 @@ interface TypingUser {
   isTyping: boolean;
 }
 
+interface PresenceData {
+  status: string;
+  message: string;
+  isOnline: boolean;
+  lastSeen: Date;
+}
+
 interface WebSocketEvents {
   onMessage: (message: Message) => void;
   onTyping: (data: { userId: string; conversationId: string; isTyping: boolean }) => void;
   onUserStatus: (data: { userId: string; status: 'online' | 'offline'; timestamp: string }) => void;
   onNewConversation: (data: { conversationId: string; participantIds: string[] }) => void;
+  onPresenceUpdate?: (data: { userId: string; presence: PresenceData; timestamp: string }) => void;
 }
 
 export const useWebSocket = (events: WebSocketEvents) => {
@@ -126,6 +134,13 @@ export const useWebSocket = (events: WebSocketEvents) => {
     socket.on('new_conversation', (data: { conversationId: string; participantIds: string[] }) => {
       console.log('💬 Nova conversa criada:', data);
       events.onNewConversation(data);
+    });
+
+    socket.on('presence_updated', (data: { userId: string; presence: PresenceData; timestamp: string }) => {
+      console.log('👤 Presença atualizada:', data);
+      if (events.onPresenceUpdate) {
+        events.onPresenceUpdate(data);
+      }
     });
 
     socket.on('error', (error) => {

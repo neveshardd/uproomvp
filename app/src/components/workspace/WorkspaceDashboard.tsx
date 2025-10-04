@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useChat } from '@/contexts/ChatContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { UserRoleBadge } from './UserRoleBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,8 @@ import { useToast } from '@/hooks/use-toast';
 import WorkspaceHeader from './WorkspaceHeader';
 import StatusSelector from './StatusSelector';
 import MemberList from './MemberList';
+import GroupParticipants from './GroupParticipants';
+import GroupSettings from './GroupSettings';
 import {
   Bell,
   Search,
@@ -50,7 +53,9 @@ import {
   LogOut,
   Building2,
   Mail,
-  User
+  User,
+  Archive,
+  Trash2
 } from 'lucide-react';
 
 export default function WorkspaceDashboard({ company }: { company: any }) {
@@ -71,6 +76,68 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
     isConnecting 
   } = useChat();
   const { canAccessSettings, canInviteUsers } = usePermissions();
+  
+  // Estados para membros e presences
+  const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+
+  // Funções auxiliares para mapear status
+  const getStatusLabel = useCallback((status: string) => {
+    const labels: Record<string, string> = {
+      'available': 'Available',
+      'focus': 'Focus',
+      'meeting': 'Meeting',
+      'away': 'Away',
+      'break': 'Break',
+      'emergency': 'Emergency',
+      'offline': 'Offline',
+    };
+    return labels[status] || 'Offline';
+  }, []);
+
+  const getStatusColor = useCallback((status: string) => {
+    const colors: Record<string, string> = {
+      'available': 'bg-green-600',
+      'focus': 'bg-purple-600',
+      'meeting': 'bg-blue-600',
+      'away': 'bg-yellow-600',
+      'break': 'bg-orange-600',
+      'emergency': 'bg-red-600',
+      'offline': 'bg-background',
+    };
+    return colors[status] || 'bg-background';
+  }, []);
+
+  // Conectar WebSocket apenas para atualizações de presença
+  const wsPresence = useWebSocket({
+    onMessage: () => {},
+    onTyping: () => {},
+    onUserStatus: () => {},
+    onNewConversation: () => {},
+    onPresenceUpdate: (data) => {
+      console.log('📢 Presença atualizada via WebSocket:', data);
+      
+      // Atualizar o membro específico na lista
+      setTeamMembers(prevMembers => {
+        return prevMembers.map(member => {
+          if (member.id === data.userId) {
+            const status = data.presence.status.toLowerCase();
+            const now = new Date();
+            return {
+              ...member,
+              description: data.presence.message || 'No status message',
+              status: getStatusLabel(status),
+              statusColor: getStatusColor(status),
+              online: data.presence.isOnline,
+              time: 'now',
+              lastSeen: now, // Atualizar lastSeen para o momento atual
+            };
+          }
+          return member;
+        });
+      });
+    },
+  });
 
   // Carregar dados da workspace quando o componente montar
   useEffect(() => {
@@ -79,6 +146,33 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
       loadWorkspaceData(company);
     }
   }, [company?.id, user?.id, loadWorkspaceData]);
+
+  // Carregar membros e seus status
+  useEffect(() => {
+    if (company?.id && user) {
+      loadTeamMembers();
+    }
+  }, [company?.id, user?.id]);
+
+  // Atualizar o tempo relativo de todos os membros a cada minuto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTeamMembers(prevMembers => {
+        return prevMembers.map(member => {
+          // Se o membro tem um lastSeen armazenado, recalcular o tempo
+          if (member.lastSeen) {
+            return {
+              ...member,
+              time: getTimeAgo(member.lastSeen),
+            };
+          }
+          return member;
+        });
+      });
+    }, 60000); // Atualizar a cada 1 minuto
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Função temporária para corrigir membros faltantes
   const handleFixMembers = async () => {
@@ -115,6 +209,91 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
     }
   };
 
+  // Carregar membros e seus status
+  const loadTeamMembers = async () => {
+    try {
+      setLoadingMembers(true);
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '');
+
+      // Buscar membros e presences em paralelo
+      const [membersResponse, presencesResponse] = await Promise.all([
+        fetch(`${apiUrl}/companies/${company.id}/members`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }),
+        fetch(`${apiUrl}/presence/${company.id}/members`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }),
+      ]);
+
+      if (membersResponse.ok && presencesResponse.ok) {
+        const membersData = await membersResponse.json();
+        const presencesData = await presencesResponse.json();
+
+        // Mapear presences por userId
+        const presenceMap = new Map();
+        presencesData.presences.forEach((p: any) => {
+          presenceMap.set(p.userId, p);
+        });
+
+        // Combinar membros com seus presences
+        const membersWithStatus = membersData.members.map((member: any) => {
+          const presence = presenceMap.get(member.user.id);
+          const status = presence?.status?.toLowerCase() || 'offline';
+          
+          return {
+            id: member.user.id,
+            name: member.user.fullName || member.user.name || member.user.email,
+            title: member.role,
+            description: presence?.message || 'No status message',
+            status: getStatusLabel(status),
+            statusColor: getStatusColor(status),
+            avatar: getMemberInitials(member.user.fullName || member.user.name || member.user.email),
+            online: presence?.isOnline || false,
+            time: getTimeAgo(presence?.lastSeen),
+            lastSeen: presence?.lastSeen, // Armazenar lastSeen para recalcular depois
+            apps: [],
+            extraApps: 0,
+          };
+        });
+
+        setTeamMembers(membersWithStatus);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar membros:', error);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+
+  // Função auxiliar para obter iniciais dos membros
+  const getMemberInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  // Função auxiliar para obter tempo relativo
+  const getTimeAgo = (date: any) => {
+    if (!date) return 'unknown';
+    const now = new Date();
+    const then = new Date(date);
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'now';
+    if (diffMins < 60) return `${diffMins}m`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d`;
+  };
+
+  // Recarregar membros quando o status for atualizado
+  const handleStatusUpdate = () => {
+    loadTeamMembers();
+  };
+
   // Debug logs para permissões
   useEffect(() => {
     console.log('🔍 WorkspaceDashboard: userRole:', userRole);
@@ -129,6 +308,8 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
   const [message, setMessage] = useState('');
   const [isDirectMessagesOpen, setIsDirectMessagesOpen] = useState(true);
   const [isGroupsOpen, setIsGroupsOpen] = useState(true);
+  const [isArchivedOpen, setIsArchivedOpen] = useState(false);
+  const [archivedConversations, setArchivedConversations] = useState<any[]>([]);
   const [isChatExpanded, setIsChatExpanded] = useState(true);
   const [isChatCollapsed, setIsChatCollapsed] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
@@ -149,6 +330,15 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
   const [isCreateGroupDialogOpen, setIsCreateGroupDialogOpen] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
+  // Estados para modais de ações de conversa
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isArchiveDialogOpen, setIsArchiveDialogOpen] = useState(false);
+  const [conversationToAction, setConversationToAction] = useState<string | null>(null);
+
+  // Estados para gerenciamento de grupos
+  const [isGroupParticipantsOpen, setIsGroupParticipantsOpen] = useState(false);
+  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
 
   // Member list modal state
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
@@ -271,6 +461,9 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
         setIsCreateGroupDialogOpen(false);
         // Selecionar o grupo recém-criado
         handleSelectChat(conversation.id);
+        // Garantir que o chat esteja expandido
+        setIsChatExpanded(true);
+        setIsChatCollapsed(false);
       }
     } catch (error) {
       toast({
@@ -397,7 +590,9 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
   // Função para obter informações do chat selecionado
   const getCurrentChatInfo = () => {
     if (!selectedChat) return null;
-    return chatState.conversations.find(conv => conv.id === selectedChat);
+    const conversation = chatState.conversations.find(conv => conv.id === selectedChat);
+    console.log('🔍 getCurrentChatInfo:', { selectedChat, conversation, totalConversations: chatState.conversations.length });
+    return conversation;
   };
 
   // Verificar se há conversas disponíveis
@@ -483,156 +678,165 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
     setIsChatCollapsed(false);
   };
 
-  const teamMembers = [
-    {
-      id: 1,
-      name: 'Michael Davis',
-      title: 'System Admin',
-      time: '2h',
-      description: 'System administrator with expertise in Linux systems and...',
-      status: 'Offline',
-      statusColor: 'bg-background',
-      avatar: 'MD',
-      apps: ['Figma', 'Trello'],
-      extraApps: 2
-    },
-    {
-      id: 2,
-      name: 'Laura Thompson',
-      title: 'UX Researcher',
-      time: '2h',
-      description: 'UX researcher passionate about understanding user beha...',
-      status: 'Offline',
-      statusColor: 'bg-background',
-      avatar: 'LT',
-      apps: ['Trello', 'Google Drive'],
-      extraApps: 2
-    },
-    {
-      id: 3,
-      name: 'Thomas Mitchell',
-      title: 'Product Designer',
-      time: '2h',
-      description: 'Product designer focused on creating user-centered desi...',
-      status: 'Offline',
-      statusColor: 'bg-background',
-      avatar: 'TM',
-      apps: ['Jira'],
-      extraApps: 0
-    },
-    {
-      id: 4,
-      name: 'Emma Johnson',
-      title: 'Marketing Specialist',
-      time: '2h',
-      description: 'Marketing specialist focused on digital campaigns and bra...',
-      status: 'Focus',
-      statusColor: 'bg-purple-600',
-      avatar: 'EJ',
-      apps: ['Microsoft Teams'],
-      extraApps: 0
-    },
-    {
-      id: 5,
-      name: 'Rachel Green',
-      title: 'Content Writer',
-      time: '2h',
-      description: 'Creative content writer specializing in engaging copy and...',
-      status: 'Available',
-      statusColor: 'bg-green-600',
-      avatar: 'RG',
-      apps: ['Jira', 'Figma'],
-      extraApps: 1,
-      online: true
-    },
-    {
-      id: 6,
-      name: 'Maria Rodriguez',
-      title: 'Data Analyst',
-      time: '2h',
-      description: 'Data analyst specializing in business intelligence and repo...',
-      status: 'Available',
-      statusColor: 'bg-green-600',
-      avatar: 'MR',
-      apps: ['Google Drive', 'Google Meet'],
-      extraApps: 1,
-      online: true
-    },
-    {
-      id: 7,
-      name: 'Emily Watson',
-      title: 'Data Scientist',
-      time: '2h',
-      description: 'Building ML model for user behavior prediction',
-      status: 'Offline',
-      statusColor: 'bg-background',
-      avatar: 'EW',
-      apps: [],
-      extraApps: 0
-    },
-    {
-      id: 8,
-      name: 'Olivia White',
-      title: 'Graphic Designer',
-      time: '2h',
-      description: 'Graphic designer with a passion for creating visually com...',
-      status: 'Offline',
-      statusColor: 'bg-background',
-      avatar: 'OW',
-      apps: [],
-      extraApps: 0
-    },
-    {
-      id: 9,
-      name: 'David Chen',
-      title: 'Frontend Developer',
-      time: '1h',
-      description: 'Frontend developer specializing in React and modern web technologies...',
-      status: 'Available',
-      statusColor: 'bg-green-600',
-      avatar: 'DC',
-      apps: ['VS Code', 'GitHub'],
-      extraApps: 1,
-      online: true
-    },
-    {
-      id: 10,
-      name: 'Sarah Wilson',
-      title: 'Backend Developer',
-      time: '3h',
-      description: 'Backend developer with expertise in Node.js and microservices...',
-      status: 'Focus',
-      statusColor: 'bg-purple-600',
-      avatar: 'SW',
-      apps: ['Docker', 'AWS'],
-      extraApps: 0
-    },
-    {
-      id: 11,
-      name: 'James Brown',
-      title: 'DevOps Engineer',
-      time: '4h',
-      description: 'DevOps engineer focused on automation and infrastructure...',
-      status: 'Offline',
-      statusColor: 'bg-background',
-      avatar: 'JB',
-      apps: ['Kubernetes', 'Jenkins'],
-      extraApps: 1
-    },
-    {
-      id: 12,
-      name: 'Lisa Anderson',
-      title: 'QA Engineer',
-      time: '1h',
-      description: 'QA engineer ensuring software quality and testing automation...',
-      status: 'Available',
-      statusColor: 'bg-green-600',
-      avatar: 'LA',
-      apps: ['Selenium', 'Postman'],
-      extraApps: 2,
-      online: true
+  // Sincronizar selectedChat local com o ChatContext
+  useEffect(() => {
+    if (chatState.selectedConversation && chatState.selectedConversation !== selectedChat) {
+      setSelectedChat(chatState.selectedConversation);
     }
-  ];
+  }, [chatState.selectedConversation, selectedChat]);
+
+  // Carregar conversas arquivadas
+  const loadArchivedConversations = async () => {
+    if (!company?.id) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/conversations?companyId=${company.id}&archived=true`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setArchivedConversations(data.conversations || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar conversas arquivadas:', error);
+    }
+  };
+
+  // Carregar arquivadas quando abrir a seção
+  useEffect(() => {
+    if (isArchivedOpen && archivedConversations.length === 0) {
+      loadArchivedConversations();
+    }
+  }, [isArchivedOpen]);
+
+  // Abrir modal de deletar conversa
+  const openDeleteDialog = (conversationId: string) => {
+    setConversationToAction(conversationId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Deletar conversa
+  const handleDeleteConversation = async () => {
+    if (!conversationToAction) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${conversationToAction}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao deletar conversa');
+      }
+
+      toast({
+        title: 'Conversa deletada',
+        description: 'A conversa foi deletada com sucesso.',
+      });
+
+      // Fechar modal e chat, recarregar conversas
+      setIsDeleteDialogOpen(false);
+      setConversationToAction(null);
+      setSelectedChat(null);
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao deletar conversa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível deletar a conversa.',
+        variant: 'destructive',
+      });
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  // Abrir modal de arquivar conversa
+  const openArchiveDialog = (conversationId: string) => {
+    setConversationToAction(conversationId);
+    setIsArchiveDialogOpen(true);
+  };
+
+  // Arquivar conversa
+  const handleArchiveConversation = async () => {
+    if (!conversationToAction) return;
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${conversationToAction}/archive`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao arquivar conversa');
+      }
+
+      toast({
+        title: 'Conversa arquivada',
+        description: 'A conversa foi arquivada com sucesso.',
+      });
+
+      // Fechar modal e chat, recarregar conversas
+      setIsArchiveDialogOpen(false);
+      setConversationToAction(null);
+      setSelectedChat(null);
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao arquivar conversa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível arquivar a conversa.',
+        variant: 'destructive',
+      });
+      setIsArchiveDialogOpen(false);
+    }
+  };
+
+  // Desarquivar conversa
+  const handleUnarchiveConversation = async (conversationId: string) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/conversations/${conversationId}/unarchive`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao desarquivar conversa');
+      }
+
+      toast({
+        title: 'Conversa desarquivada',
+        description: 'A conversa foi restaurada para sua lista.',
+      });
+
+      // Recarregar conversas arquivadas e conversas normais
+      loadArchivedConversations();
+      window.location.reload();
+    } catch (error) {
+      console.error('Erro ao desarquivar conversa:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível desarquivar a conversa.',
+        variant: 'destructive',
+      });
+    }
+  };
+
 
   return (
     <div className="h-screen bg-background text-white flex flex-col">
@@ -696,9 +900,9 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex relative">
-        {/* Left Sidebar - Direct Messages, Groups, Status - Fixed */}
-        <div className={`w-64 bg-background border-r border-zinc-800 flex flex-col fixed left-0 top-0 h-screen z-40 transition-transform duration-300 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar - Direct Messages, Groups, Status */}
+        <div className={`w-64 bg-background border-r border-zinc-800 flex flex-col transition-transform duration-300 ${isMobileSidebarOpen ? 'fixed left-0 top-0 h-screen z-40 translate-x-0' : 'hidden md:flex'
           }`}>
           {/* User Info */}
           <div className="flex justify-between items-center space-x-4 px-5 py-[14.5px] border-b border-zinc-800">
@@ -770,24 +974,23 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
 
             {isDirectMessagesOpen && (
               <div className="space-y-2">
-                {/* Botão para iniciar nova conversa */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsMemberListOpen(true)}
-                  className="w-full bg-transparent border-zinc-600 hover:bg-zinc-700 text-white mb-2"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Conversa
-                </Button>
+                {directMessages.length === 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsMemberListOpen(true)}
+                    className="w-full bg-transparent border-zinc-600 hover:bg-zinc-700 text-white mb-2"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Conversa
+                  </Button>
+                )}
                 
                 {directMessages.length > 0 ? (
                   directMessages.map((dm) => {
                     const otherParticipant = dm.participants?.find((p: any) => p.userId !== user?.id);
                     const isOnline = chatState.onlineUsers.has(otherParticipant?.userId || '');
                     const unreadCount = getUnreadCount(dm.id);
-                    const totalMessages = chatState.messages[dm.id]?.length || 0;
-                    const pinnedCount = (chatState.messages[dm.id] || []).filter((msg: any) => msg.isPinned).length;
                     
                     return (
                       <div
@@ -879,24 +1082,95 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
                 </div>
               )}
             </div>
+
+            {/* Archived */}
+            <div className="mt-6">
+              <div
+                className="flex items-center justify-between cursor-pointer mb-4"
+                onClick={() => setIsArchivedOpen(!isArchivedOpen)}
+              >
+                <span className="text-sm font-medium text-gray-300">Archived</span>
+                {isArchivedOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </div>
+
+              {isArchivedOpen && (
+                <div className="space-y-2">
+                  {archivedConversations.length > 0 ? (
+                    archivedConversations.map((conversation) => {
+                      const isGroup = conversation.type === 'GROUP';
+                      const otherParticipant = isGroup ? null : conversation.participants?.find((p: any) => p.userId !== user?.id);
+                      const displayName = isGroup 
+                        ? conversation.title 
+                        : (otherParticipant?.user?.fullName || otherParticipant?.user?.email?.split('@')[0] || 'Unknown');
+                      
+                      const initials = isGroup
+                        ? conversation.title.split(' ').map((word: string) => word[0]).join('').toUpperCase().slice(0, 2)
+                        : getUserInitials(otherParticipant?.user?.fullName || otherParticipant?.user?.email || 'U');
+
+                      return (
+                        <div
+                          key={conversation.id}
+                          className="flex items-center justify-between p-2 rounded hover:bg-white/10 group"
+                        >
+                          <div 
+                            className="flex items-center space-x-3 flex-1 cursor-pointer"
+                            onClick={() => handleSelectChat(conversation.id)}
+                          >
+                            <div className="w-8 h-8 bg-background rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">{initials}</span>
+                            </div>
+                            <span className="text-sm text-gray-400">{displayName}</span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleUnarchiveConversation(conversation.id);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Desarquivar"
+                          >
+                            <Archive className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-400">Nenhuma conversa arquivada</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Status Section */}
           <div className="p-4 border-t-2 border-zinc-800">
             <StatusSelector 
               companyId={company?.id || currentCompany?.id}
+              onStatusUpdate={handleStatusUpdate}
               className="bg-background border-zinc-700"
             />
           </div>
         </div>
 
         {/* Center Area - Team Members Grid */}
-        <div className={`flex-1 bg-background p-6 overflow-y-auto transition-all duration-300 md:ml-64 ${!isChatExpanded ? '' : isChatCollapsed ? 'mr-96' : 'md:mr-2/5'
-          }`} style={{
+        <div className="flex-1 bg-background p-6 overflow-y-auto" style={{
             marginTop: '0px'    // Sem margem superior
           }}>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {loadingMembers ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            </div>
+          ) : teamMembers.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-gray-400">Nenhum membro encontrado</p>
+            </div>
+          ) : (
+            <div className={`grid gap-4 ${isChatExpanded && !isChatCollapsed ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
             {teamMembers.map((member) => (
               <div key={member.id} className="bg-background rounded-lg p-4 hover:bg-background transition-colors border-2 border-zinc-800">
                 {/* Card Header */}
@@ -904,12 +1178,12 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
                   <div className="flex items-center space-x-3">
                     <div className="relative">
                       <Avatar className="w-12 h-12">
-                        <AvatarFallback className="bg-background text-white text-sm font-semibold">
+                        <AvatarFallback className="bg-white/10 text-white text-sm font-semibold">
                           {member.avatar}
                         </AvatarFallback>
                       </Avatar>
                       {member.online && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-700"></div>
+                        <div className="absolute -bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-700"></div>
                       )}
                     </div>
                     <div>
@@ -934,13 +1208,11 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
                     <span className={`px-2 py-1 rounded text-xs font-medium ${member.statusColor} text-white`}>
                       {member.status}
                     </span>
-                    {member.online && (
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    )}
                   </div>
 
                   <div className="flex items-center space-x-1">
-                    {member.apps.slice(0, 2).map((app, index) => (
+                    {/* @ts-ignore */}
+                    {member.apps.slice(0, 2).map((app: string, index: number) => (
                       <div key={index} className="w-6 h-6 bg-background rounded flex items-center justify-center">
                         <span className="text-xs text-white font-semibold">
                           {app.charAt(0)}
@@ -958,11 +1230,12 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Sidebar - Chat Conversation - Fixed and Overlay */}
-        <div className={`bg-background border-l-2 pt-20 border-stone-800 transition-all duration-300 fixed right-0 top-0 h-screen z-30 ${!isChatExpanded ? 'w-0 overflow-hidden' : isChatCollapsed ? 'w-96' : 'w-full md:w-6/12'
+        {/* Right Sidebar - Chat Conversation */}
+        <div className={`bg-background border-l-2 border-stone-800 transition-all duration-300 flex flex-col ${!isChatExpanded ? 'w-0 overflow-hidden' : isChatCollapsed ? 'w-96' : 'w-full md:w-6/12'
           }`}>
           {!isChatExpanded && (
             <div className="flex flex-col items-center justify-center h-full space-y-4">
@@ -1024,22 +1297,61 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
                           }
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium">
-                        {getCurrentChatInfo()?.type === 'DIRECT' 
-                          ? (() => {
-                              const otherParticipant = getCurrentChatInfo()?.participants?.find(p => p.userId !== user?.id);
-                              return otherParticipant ? 
-                                (otherParticipant.user.fullName || otherParticipant.user.email?.split('@')[0] || 'Unknown User') : 
-                                'Unknown User';
-                            })()
-                          : getCurrentChatInfo()?.title || 'Unknown'
-                        }
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {getCurrentChatInfo()?.type === 'DIRECT' 
+                            ? (() => {
+                                const otherParticipant = getCurrentChatInfo()?.participants?.find(p => p.userId !== user?.id);
+                                return otherParticipant ? 
+                                  (otherParticipant.user.fullName || otherParticipant.user.email?.split('@')[0] || 'Unknown User') : 
+                                  'Unknown User';
+                              })()
+                            : getCurrentChatInfo()?.title || 'Unknown'
+                          }
+                        </span>
+                        {getCurrentChatInfo()?.type === 'GROUP' && (
+                          <span className="text-xs text-gray-400">
+                            {getCurrentChatInfo()?.participants?.length || 0} participantes
+                            {getCurrentChatInfo()?.description && ` • ${getCurrentChatInfo()?.description}`}
+                          </span>
+                        )}
+                      </div>
                     </div>
                 <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {getCurrentChatInfo()?.type === 'GROUP' && (
+                        <>
+                          <DropdownMenuItem onClick={() => setIsGroupParticipantsOpen(true)}>
+                            <UserPlus className="mr-2 h-4 w-4" />
+                            <span>Gerenciar participantes</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setIsGroupSettingsOpen(true)}>
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Configurações do grupo</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+                      <DropdownMenuItem onClick={() => openArchiveDialog(selectedChat!)}>
+                        <Archive className="mr-2 h-4 w-4" />
+                        <span>Arquivar conversa</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => openDeleteDialog(selectedChat!)}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        <span>Deletar conversa</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1384,6 +1696,81 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Conversation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Deletar Conversa</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja deletar esta conversa? Esta ação não pode ser desfeita e todas as mensagens serão permanentemente removidas.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteDialogOpen(false);
+                setConversationToAction(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteConversation}
+            >
+              Deletar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Archive Conversation Dialog */}
+      <Dialog open={isArchiveDialogOpen} onOpenChange={setIsArchiveDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Arquivar Conversa</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja arquivar esta conversa? Ela será removida da sua lista de conversas, mas você poderá acessá-la novamente depois.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsArchiveDialogOpen(false);
+                setConversationToAction(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleArchiveConversation}
+            >
+              Arquivar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Group Participants Dialog */}
+      {selectedChat && (
+        <GroupParticipants
+          conversationId={selectedChat}
+          isOpen={isGroupParticipantsOpen}
+          onClose={() => setIsGroupParticipantsOpen(false)}
+        />
+      )}
+
+      {/* Group Settings Dialog */}
+      {selectedChat && (
+        <GroupSettings
+          conversationId={selectedChat}
+          isOpen={isGroupSettingsOpen}
+          onClose={() => setIsGroupSettingsOpen(false)}
+        />
+      )}
 
     </div>
   );

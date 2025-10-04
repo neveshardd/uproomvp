@@ -2,9 +2,10 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/database';
 import { requireAuth } from '../lib/session-middleware';
+import { wsManager } from '../lib/websocket';
 
 const updatePresenceSchema = z.object({
-  status: z.enum(['AVAILABLE', 'BUSY', 'AWAY', 'OFFLINE']),
+  status: z.enum(['AVAILABLE', 'FOCUS', 'MEETING', 'AWAY', 'BREAK', 'EMERGENCY', 'OFFLINE']),
   message: z.string().optional(),
   isOnline: z.boolean().optional(),
 });
@@ -71,7 +72,7 @@ export async function presenceRoutes(fastify: FastifyInstance) {
         properties: {
           status: {
             type: 'string',
-            enum: ['AVAILABLE', 'BUSY', 'AWAY', 'OFFLINE']
+            enum: ['AVAILABLE', 'FOCUS', 'MEETING', 'AWAY', 'BREAK', 'EMERGENCY', 'OFFLINE']
           },
           message: {
             type: 'string'
@@ -119,6 +120,11 @@ export async function presenceRoutes(fastify: FastifyInstance) {
           lastSeen: new Date(),
         },
       });
+
+      // Notificar via WebSocket sobre a mudança de presença
+      wsManager.notifyPresenceUpdate(userId, companyId, presence);
+
+      console.log('✅ Presence updated and broadcast:', { userId, companyId, status: presence.status });
 
       return { presence };
     } catch (error) {

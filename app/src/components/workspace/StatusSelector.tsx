@@ -179,17 +179,34 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     if (!selectedCompany || !user) return
 
     try {
-      // Simular busca de status atual - implementar com API real
-      const mockStatus = {
-        status: 'available',
-        message: 'Available for work',
-        isOnline: true
-      }
+      const token = localStorage.getItem('auth_token')
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '')
       
-      setCurrentStatus(mockStatus)
-      setSelectedStatus(mockStatus.status)
-      setCustomMessage(mockStatus.message || '')
-      setIsToggleOn(mockStatus.status !== 'OFFLINE')
+      const response = await fetch(`${apiUrl}/presence/${selectedCompany}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        const presence = data.presence
+        
+        // Converter status para lowercase para corresponder ao frontend
+        const status = presence.status.toLowerCase()
+        
+        setCurrentStatus({
+          status,
+          message: presence.message || '',
+          isOnline: presence.isOnline
+        })
+        setSelectedStatus(status)
+        setCustomMessage(presence.message || '')
+        setIsToggleOn(status !== 'offline')
+      } else {
+        // Create default status if none exists
+        await createDefaultStatus()
+      }
     } catch (err: any) {
       console.error('Error fetching current status:', err)
       // Create default status if none exists
@@ -233,27 +250,54 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
     setSuccess('')
 
     try {
-      // Simular atualização de status - implementar com API real
-      const newStatus = {
-        status: selectedStatus,
-        message: customMessage,
-        isOnline: selectedStatus !== 'OFFLINE',
-        lastSeen: new Date()
-      }
+      const token = localStorage.getItem('auth_token')
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '')
       
-      setCurrentStatus(newStatus)
-      setIsToggleOn(selectedStatus !== 'OFFLINE')
-      setSuccess('Status updated successfully!')
+      // Converter status para uppercase para a API
+      const statusUppercase = selectedStatus.toUpperCase()
       
-      // Close the selector after a brief delay
-      setTimeout(() => {
-        setIsOpen(false)
-        setSuccess('')
-      }, 1500)
+      const response = await fetch(`${apiUrl}/presence/${selectedCompany}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: statusUppercase,
+          message: customMessage,
+          isOnline: selectedStatus !== 'offline',
+        }),
+      })
 
+      if (response.ok) {
+        const data = await response.json()
+        const presence = data.presence
+        
+        setCurrentStatus({
+          status: selectedStatus,
+          message: presence.message || customMessage,
+          isOnline: presence.isOnline
+        })
+        setIsToggleOn(selectedStatus !== 'offline')
+        setSuccess('Status atualizado com sucesso!')
+        
+        // Notificar o componente pai se houver callback
+        if (onStatusUpdate) {
+          onStatusUpdate()
+        }
+        
+        // Close the selector after a brief delay
+        setTimeout(() => {
+          setIsOpen(false)
+          setSuccess('')
+        }, 1500)
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || 'Falha ao atualizar status')
+      }
     } catch (err: any) {
       console.error('Error updating status:', err)
-      setError(err.message || 'Failed to update status')
+      setError(err.message || 'Falha ao atualizar status')
     } finally {
       setLoading(false)
     }

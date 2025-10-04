@@ -13,6 +13,7 @@ const createConversationSchema = z.object({
 
 const updateConversationSchema = z.object({
   title: z.string().min(1).optional(),
+  description: z.string().optional(),
 });
 
 export async function conversationRoutes(fastify: FastifyInstance) {
@@ -71,12 +72,16 @@ export async function conversationRoutes(fastify: FastifyInstance) {
     try {
       // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
       const userId = request.user.id;
-      const { companyId } = request.query as { companyId?: string };
+      const { companyId, archived } = request.query as { companyId?: string; archived?: string };
+
+      // Se archived=true, mostrar apenas arquivadas; caso contrário, apenas não-arquivadas
+      const isArchived = archived === 'true';
 
       const whereClause: any = {
         participants: {
           some: {
             userId,
+            isArchived: isArchived,
           },
         },
       };
@@ -219,6 +224,164 @@ export async function conversationRoutes(fastify: FastifyInstance) {
       return { success: true };
     } catch (error) {
       return reply.status(400).send({ error: 'Dados inválidos' });
+    }
+  });
+
+  // Remover participante da conversa
+  fastify.delete('/:id/participants/:userId', {
+    preHandler: requireAuth,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id, userId } = request.params as { id: string; userId: string };
+      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+      const currentUserId = request.user.id;
+
+      // Verificar se o usuário atual é participante da conversa
+      const participation = await prisma.conversationParticipant.findFirst({
+        where: {
+          conversationId: id,
+          userId: currentUserId,
+        },
+      });
+
+      if (!participation) {
+        return reply.status(403).send({ error: 'Acesso negado' });
+      }
+
+      // Remover participante
+      await prisma.conversationParticipant.deleteMany({
+        where: {
+          conversationId: id,
+          userId: userId,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      return reply.status(400).send({ error: 'Dados inválidos' });
+    }
+  });
+
+  // Deletar conversa
+  fastify.delete('/:id', {
+    preHandler: requireAuth,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+      const userId = request.user.id;
+
+      // Verificar se o usuário é criador ou participante da conversa
+      const conversation = await prisma.conversation.findFirst({
+        where: {
+          id,
+          participants: {
+            some: {
+              userId,
+            },
+          },
+        },
+      });
+
+      if (!conversation) {
+        return reply.status(404).send({ error: 'Conversa não encontrada' });
+      }
+
+      // Deletar todos os participantes
+      await prisma.conversationParticipant.deleteMany({
+        where: { conversationId: id },
+      });
+
+      // Deletar todas as mensagens
+      await prisma.message.deleteMany({
+        where: { conversationId: id },
+      });
+
+      // Deletar a conversa
+      await prisma.conversation.delete({
+        where: { id },
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao deletar conversa:', error);
+      return reply.status(500).send({ error: 'Erro interno' });
+    }
+  });
+
+  // Arquivar conversa
+  fastify.post('/:id/archive', {
+    preHandler: requireAuth,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+      const userId = request.user.id;
+
+      // Verificar se o usuário é participante da conversa
+      const participation = await prisma.conversationParticipant.findFirst({
+        where: {
+          conversationId: id,
+          userId,
+        },
+      });
+
+      if (!participation) {
+        return reply.status(403).send({ error: 'Acesso negado' });
+      }
+
+      // Atualizar o participante para arquivar a conversa
+      await prisma.conversationParticipant.update({
+        where: {
+          id: participation.id,
+        },
+        data: {
+          isArchived: true,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao arquivar conversa:', error);
+      return reply.status(500).send({ error: 'Erro interno' });
+    }
+  });
+
+  // Desarquivar conversa
+  fastify.post('/:id/unarchive', {
+    preHandler: requireAuth,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { id } = request.params as { id: string };
+      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+      const userId = request.user.id;
+
+      // Verificar se o usuário é participante da conversa
+      const participation = await prisma.conversationParticipant.findFirst({
+        where: {
+          conversationId: id,
+          userId,
+        },
+      });
+
+      if (!participation) {
+        return reply.status(403).send({ error: 'Acesso negado' });
+      }
+
+      // Atualizar o participante para desarquivar a conversa
+      await prisma.conversationParticipant.update({
+        where: {
+          id: participation.id,
+        },
+        data: {
+          isArchived: false,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao desarquivar conversa:', error);
+      return reply.status(500).send({ error: 'Erro interno' });
     }
   });
 }

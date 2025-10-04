@@ -82,6 +82,9 @@ class WebSocketManager {
           }
           this.userSockets.get(decoded.userId)!.add(socket.id);
 
+          // Entrar na sala da empresa
+          socket.join(`company:${data.companyId}`);
+
           // Entrar nas salas das conversas do usuário
           const conversations = await prisma.conversation.findMany({
             where: {
@@ -210,6 +213,24 @@ class WebSocketManager {
     this.io.to(`company:${companyId}`).emit('user_status_changed', {
       userId,
       status,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  // Método para notificar sobre mudança de presença/status
+  notifyPresenceUpdate(userId: string, companyId: string, presence: any) {
+    if (!this.io) return;
+
+    console.log('📢 Broadcasting presence update:', { userId, companyId, status: presence.status });
+    
+    this.io.to(`company:${companyId}`).emit('presence_updated', {
+      userId,
+      presence: {
+        status: presence.status,
+        message: presence.message,
+        isOnline: presence.isOnline,
+        lastSeen: presence.lastSeen,
+      },
       timestamp: new Date().toISOString(),
     });
   }
