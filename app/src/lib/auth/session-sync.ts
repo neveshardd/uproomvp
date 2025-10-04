@@ -39,7 +39,7 @@ export class SessionSync {
    */
   static async validateToken(token: string): Promise<Session | null> {
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+      const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '')
       const response = await fetch(`${API_URL}/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -143,7 +143,7 @@ export class SessionSync {
       if (!token) return false
 
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+        const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '')
         const response = await fetch(`${API_URL}/auth/session`, {
           headers: {
             'Authorization': `Bearer ${token}`,

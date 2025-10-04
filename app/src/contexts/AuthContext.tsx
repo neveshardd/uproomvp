@@ -5,6 +5,7 @@ import { User } from '@/lib/types';
 import { SessionSync } from '@/lib/auth/session-sync';
 import { SessionManager, Session } from '@/lib/auth/session-manager';
 import { CrossDomainAuth } from '@/lib/auth/cross-domain-auth';
+import { API_URL } from '@/lib/api-config';
 
 interface AuthContextType {
   user: User | null;
@@ -46,7 +47,6 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);

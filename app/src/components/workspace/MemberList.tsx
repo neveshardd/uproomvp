@@ -50,7 +50,7 @@ export default function MemberList({ companyId, onClose }: MemberListProps) {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '');
       const token = localStorage.getItem('auth_token');
       
       console.log('🔍 MemberList: Carregando membros para company:', companyId);

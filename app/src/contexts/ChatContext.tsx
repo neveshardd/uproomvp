@@ -280,7 +280,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const { currentCompany } = useCompany();
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '');
 
   // WebSocket events
   const handleNewMessage = (message: Message) => {

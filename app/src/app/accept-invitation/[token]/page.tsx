@@ -51,7 +51,7 @@ export default function AcceptInvitationPage() {
   const validateInvitation = async () => {
     try {
       setLoading(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '');
       
       const response = await fetch(`${apiUrl}/invitations/validate/${token}`, {
         method: 'GET',
@@ -87,7 +87,7 @@ export default function AcceptInvitationPage() {
 
     try {
       setAccepting(true);
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '');
       const authToken = localStorage.getItem('auth_token');
       
       if (!authToken) {

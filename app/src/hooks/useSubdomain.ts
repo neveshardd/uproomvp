@@ -169,7 +169,7 @@ const validateFormat = (subdomain: string) => {
 
 const getCompanyBySubdomain = async (subdomain: string) => {
   try {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333'
+    const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '')
     const response = await fetch(`${API_URL}/companies/subdomain/${subdomain}`)
     
     if (!response.ok) {

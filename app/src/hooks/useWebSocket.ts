@@ -46,7 +46,7 @@ export const useWebSocket = (events: WebSocketEvents) => {
 
     setIsConnecting(true);
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333';
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '');
     const socket = io(apiUrl, {
       transports: ['websocket', 'polling'],
       autoConnect: false,
