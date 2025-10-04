@@ -60,8 +60,16 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       const isSubdomain = (hostname.includes('.') && !hostname.includes('localhost')) || 
                          (hostname.includes('localhost') && hostname.split('.').length > 2);
       
-      // Special case: if we're on localhost:3000 (main domain), always load companies
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      // Special cases for main domains that should always load companies
+      const isMainDomain = hostname === 'localhost' || 
+                          hostname === '127.0.0.1' ||
+                          hostname === 'starvibe.space' ||
+                          hostname === 'www.starvibe.space' ||
+                          hostname === 'uproom.com' ||
+                          hostname === 'www.uproom.com' ||
+                          hostname.includes('uproomvp.vercel.app');
+      
+      if (isMainDomain) {
         console.log('🔍 CompanyContext: Main domain detected, loading companies...');
         // Don't return, continue with loading
       } else if (isSubdomain) {
