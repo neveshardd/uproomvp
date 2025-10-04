@@ -106,7 +106,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, currentCompany]);
+  }, [user?.id]);
 
   useEffect(() => {
     console.log('🔍 CompanyContext: useEffect triggered, user:', user?.id);
@@ -120,14 +120,14 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       setUserRole(null);
       setCompanyMembers([]);
     }
-  }, [user, loadUserCompanies]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (userCompanies.length > 0 && !currentCompany) {
       setCurrentCompany(userCompanies[0]);
       loadCompanyData(userCompanies[0].id);
     }
-  }, [userCompanies, currentCompany]);
+  }, [userCompanies]);
 
   const loadCompanyData = async (companyId: string) => {
     try {
@@ -181,9 +181,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       const result = await response.json();
 
       if (response.ok) {
-        setUserCompanies(prev => [...prev, result.company]);
-        setCurrentCompany(result.company);
-        await loadCompanyData(result.company.id);
+        // Recarregar a lista de empresas para garantir que os dados estejam atualizados
         await loadUserCompanies();
         return { success: true };
       }
@@ -352,6 +350,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
     if (currentCompany) {
       await loadCompanyData(currentCompany.id);
     }
+    // Recarregar apenas as empresas sem afetar o estado atual
     await loadUserCompanies();
   };
 
