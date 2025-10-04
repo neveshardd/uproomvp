@@ -53,14 +53,22 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       const hostname = window.location.hostname;
       console.log('🔍 CompanyContext: hostname:', hostname);
       
-      const isSubdomain = hostname.includes('.') && !hostname.includes('localhost') || 
+      // Only skip loading if we're actually in a workspace subdomain
+      // This means we're on a subdomain like "workspace.localhost:3000" or "workspace.uproom.com"
+      // For localhost, check if we have more than 2 parts (e.g., "workspace.localhost:3000")
+      // For production, check if we're not on the main domain
+      const isSubdomain = (hostname.includes('.') && !hostname.includes('localhost')) || 
                          (hostname.includes('localhost') && hostname.split('.').length > 2);
       
-      console.log('🔍 CompanyContext: isSubdomain:', isSubdomain);
-      
-      if (isSubdomain) {
+      // Special case: if we're on localhost:3000 (main domain), always load companies
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        console.log('🔍 CompanyContext: Main domain detected, loading companies...');
+        // Don't return, continue with loading
+      } else if (isSubdomain) {
         console.log('🔍 CompanyContext: Em workspace, não carregando empresas');
         return;
+      } else {
+        console.log('🔍 CompanyContext: Não é subdomínio, carregando empresas...');
       }
     }
     
