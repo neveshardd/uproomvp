@@ -29,7 +29,7 @@ export default function MemberList({ companyId, onClose }: MemberListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const { createConversation } = useChat();
+  const { createConversation, state: chatState } = useChat();
 
   useEffect(() => {
     fetchMembers();
@@ -101,8 +101,7 @@ export default function MemberList({ companyId, onClose }: MemberListProps) {
   const handleStartConversation = async (memberId: string, memberName: string) => {
     try {
       // Verificar se já existe uma conversa direta com esta pessoa
-      const { state } = useChat();
-      const existingConversation = state.conversations.find(conv => {
+      const existingConversation = chatState.conversations.find(conv => {
         if (conv.type !== 'DIRECT') return false;
         const participants = conv.participants?.map(p => p.userId) || [];
         return participants.includes(memberId) && participants.includes(user?.id || '');

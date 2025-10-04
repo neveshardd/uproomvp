@@ -32,6 +32,7 @@ export const requireAuth = async (
     const token = authorization.replace('Bearer ', '');
 
     console.log('🔐 Session Middleware: Verificando token:', token.substring(0, 20) + '...');
+    console.log('🔐 Session Middleware: JWT_SECRET configurado:', !!process.env.JWT_SECRET);
     
     // Verificar token JWT
     const decoded = AuthService.verifyToken(token);

@@ -26,6 +26,60 @@ export async function companyRoutes(fastify: FastifyInstance) {
     return { message: 'Test successful', body: request.body };
   });
 
+  // Endpoint temporário para corrigir membros faltantes
+  fastify.post('/fix-members', {
+    preHandler: requireAuth,
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const userId = (request as AuthenticatedRequest).user.id;
+      console.log('🔧 Fixing members for user:', userId);
+
+      // Buscar todas as empresas onde o usuário é owner mas não é membro
+      const companies = await prisma.company.findMany({
+        where: {
+          ownerId: userId,
+        },
+        include: {
+          members: {
+            where: {
+              userId,
+            },
+          },
+        },
+      });
+
+      const fixed = [];
+      
+      for (const company of companies) {
+        if (company.members.length === 0) {
+          // Criar o registro de membro faltante
+          const member = await prisma.companyMember.create({
+            data: {
+              companyId: company.id,
+              userId,
+              role: 'OWNER',
+            },
+          });
+          
+          console.log('✅ Fixed company:', company.name, 'member:', member.id);
+          fixed.push({
+            companyId: company.id,
+            companyName: company.name,
+            memberId: member.id,
+          });
+        }
+      }
+
+      return { 
+        message: 'Members fixed successfully',
+        fixed,
+      };
+    } catch (error) {
+      console.error('Error fixing members:', error);
+      return reply.status(500).send({ error: 'Failed to fix members' });
+    }
+  });
+
   // Criar empresa
   fastify.post('/', {
     preHandler: requireAuth,
@@ -129,6 +183,8 @@ export async function companyRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Subdomínio já está em uso' });
       }
 
+      console.log('🔍 Creating company:', { name, subdomain, userId });
+
       const company = await prisma.company.create({
         data: {
           name,
@@ -138,14 +194,18 @@ export async function companyRoutes(fastify: FastifyInstance) {
         },
       });
 
-      // Adicionar o criador como membro
-      await prisma.companyMember.create({
+      console.log('✅ Company created:', company.id);
+
+      // Adicionar o criador como membro com role OWNER
+      const member = await prisma.companyMember.create({
         data: {
           companyId: company.id,
           userId,
           role: 'OWNER',
         },
       });
+
+      console.log('✅ Company member created:', { memberId: member.id, userId, companyId: company.id, role: member.role });
 
       return { company };
     } catch (error) {

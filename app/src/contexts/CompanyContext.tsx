@@ -19,6 +19,7 @@ interface CompanyContextType {
   removeMember: (memberId: string) => Promise<{ success: boolean; error?: string }>;
   refreshCompanyData: () => Promise<void>;
   checkSubdomainAvailability: (subdomain: string) => Promise<{ available: boolean; error?: string }>;
+  loadWorkspaceData: (company: Company) => Promise<void>;
 }
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
@@ -44,6 +45,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [companyMembers, setCompanyMembers] = useState<CompanyMember[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
 
   const loadUserCompanies = useCallback(async () => {
     console.log('🔍 CompanyContext: loadUserCompanies called');
@@ -73,7 +75,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
         console.log('🔍 CompanyContext: Main domain detected, loading companies...');
         // Don't return, continue with loading
       } else if (isSubdomain) {
-        console.log('🔍 CompanyContext: Em workspace, não carregando empresas');
+        console.log('🔍 CompanyContext: Em workspace (subdomain), carregamento de empresas será feito pelo WorkspaceDashboard');
         return;
       } else {
         console.log('🔍 CompanyContext: Não é subdomínio, carregando empresas...');
@@ -84,6 +86,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
     try {
       const token = localStorage.getItem('auth_token');
       console.log('🔍 CompanyContext: Token encontrado:', !!token);
+      console.log('🔍 CompanyContext: Token value:', token ? token.substring(0, 20) + '...' : 'null');
       
       if (!token) {
         console.log('❌ CompanyContext: Nenhum token encontrado');
@@ -106,8 +109,16 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
         
         if (data.companies.length > 0 && !currentCompany) {
           console.log('🔍 CompanyContext: Setting first company as current:', data.companies[0].id);
-          setCurrentCompany(data.companies[0]);
-          await loadCompanyData(data.companies[0].id);
+          const firstCompany = data.companies[0];
+          setCurrentCompany(firstCompany);
+          
+          // Usar o userRole que já vem da API
+          if (firstCompany.userRole) {
+            console.log('🔍 CompanyContext: Setting userRole from company data:', firstCompany.userRole);
+            setUserRole(firstCompany.userRole);
+          }
+          
+          await loadCompanyData(firstCompany.id);
         }
       } else if (response.status === 401) {
         console.log('❌ CompanyContext: Token inválido (401), limpando localStorage');
@@ -161,6 +172,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
 
       if (roleResponse.ok) {
         const roleData = await roleResponse.json();
+        console.log('🔍 CompanyContext: Setting userRole from API:', roleData.role);
         setUserRole(roleData.role);
       } else if (roleResponse.status === 404) {
         console.log('🔍 CompanyContext: User not a member of this company, skipping role load');
@@ -178,6 +190,37 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       console.error('Unexpected error loading company data:', error);
     }
   };
+
+  // Função para carregar dados da workspace quando estamos em um subdomínio
+  const loadWorkspaceData = useCallback(async (company: Company) => {
+    console.log('🔍 CompanyContext: loadWorkspaceData called for company:', company.id);
+    
+    if (!user) {
+      console.log('❌ CompanyContext: No user, cannot load workspace data');
+      return;
+    }
+    
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.log('❌ CompanyContext: No token, cannot load workspace data');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Setar a empresa atual
+      setCurrentCompany(company);
+      
+      // Carregar o papel do usuário nesta empresa
+      await loadCompanyData(company.id);
+      
+      console.log('✅ CompanyContext: Workspace data loaded successfully');
+    } catch (error) {
+      console.error('❌ CompanyContext: Error loading workspace data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const createCompany = async (data: { name: string; subdomain: string; description?: string }) => {
     setIsLoading(true);
@@ -199,6 +242,33 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       if (response.ok) {
         // Recarregar a lista de empresas para garantir que os dados estejam atualizados
         await loadUserCompanies();
+        
+        // Buscar a empresa recém-criada e setar como current
+        const companiesResponse = await fetch(`${API_URL}/companies/user/${user?.id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        if (companiesResponse.ok) {
+          const companiesData = await companiesResponse.json();
+          const newCompany = companiesData.companies.find((c: Company) => c.subdomain === data.subdomain);
+          
+          if (newCompany) {
+            console.log('🔍 CompanyContext: Setting newly created company as current:', newCompany);
+            setCurrentCompany(newCompany);
+            
+            // Usar o userRole que já vem da API (deve ser OWNER)
+            if (newCompany.userRole) {
+              console.log('🔍 CompanyContext: Setting userRole for new company:', newCompany.userRole);
+              setUserRole(newCompany.userRole);
+            }
+            
+            // Carregar membros e outros dados
+            await loadCompanyData(newCompany.id);
+          }
+        }
+        
         return { success: true };
       }
 
@@ -216,6 +286,13 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
     if (!company) return;
 
     setCurrentCompany(company);
+    
+    // Usar o userRole que já vem da API
+    if (company.userRole) {
+      console.log('🔍 CompanyContext: Setting userRole from company data:', company.userRole);
+      setUserRole(company.userRole);
+    }
+    
     await loadCompanyData(companyId);
   };
 
@@ -400,6 +477,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
     removeMember,
     refreshCompanyData,
     checkSubdomainAvailability,
+    loadWorkspaceData,
   };
 
   return (

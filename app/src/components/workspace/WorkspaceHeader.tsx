@@ -129,7 +129,7 @@ export default function WorkspaceHeader({ company }: WorkspaceHeaderProps) {
               <div>
                 <h1 className="text-lg font-semibold text-foreground">{company?.name || 'Workspace'}</h1>
                 <p className="text-xs text-muted-foreground">
-                  {userRole === 'OWNER' ? 'Owner' : userRole === 'ADMIN' ? 'Admin' : 'Member'}
+                  {company?.subdomain ? `${company.subdomain}.uproom.com` : 'Workspace URL'}
                 </p>
               </div>
             </div>

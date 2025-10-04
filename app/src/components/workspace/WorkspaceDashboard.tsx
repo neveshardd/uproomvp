@@ -56,7 +56,7 @@ import {
 export default function WorkspaceDashboard({ company }: { company: any }) {
   const router = useRouter();
   const { user, signOut } = useAuth();
-  const { currentCompany, inviteUser, userRole } = useCompany();
+  const { currentCompany, inviteUser, userRole, loadWorkspaceData } = useCompany();
   const { toast } = useToast();
   const { 
     state: chatState, 
@@ -71,6 +71,58 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
     isConnecting 
   } = useChat();
   const { canAccessSettings, canInviteUsers } = usePermissions();
+
+  // Carregar dados da workspace quando o componente montar
+  useEffect(() => {
+    if (company && user && loadWorkspaceData) {
+      console.log('🔍 WorkspaceDashboard: Loading workspace data for company:', company.id);
+      loadWorkspaceData(company);
+    }
+  }, [company?.id, user?.id, loadWorkspaceData]);
+
+  // Função temporária para corrigir membros faltantes
+  const handleFixMembers = async () => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3333').replace(/\/$/, '');
+      
+      const response = await fetch(`${apiUrl}/companies/fix-members`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      console.log('✅ Membros corrigidos:', data);
+      
+      toast({
+        title: 'Sucesso!',
+        description: `${data.fixed.length} empresa(s) corrigida(s)`,
+      });
+
+      // Recarregar dados da workspace
+      if (company && loadWorkspaceData) {
+        await loadWorkspaceData(company);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao corrigir membros:', error);
+      toast({
+        title: 'Erro',
+        description: 'Falha ao corrigir membros',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Debug logs para permissões
+  useEffect(() => {
+    console.log('🔍 WorkspaceDashboard: userRole:', userRole);
+    console.log('🔍 WorkspaceDashboard: canInviteUsers:', canInviteUsers);
+    console.log('🔍 WorkspaceDashboard: canAccessSettings:', canAccessSettings);
+    console.log('🔍 WorkspaceDashboard: currentCompany:', currentCompany?.name);
+    console.log('🔍 WorkspaceDashboard: company prop:', company?.name);
+  }, [userRole, canInviteUsers, canAccessSettings, currentCompany, company]);
 
   // Chat state
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -599,6 +651,17 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
           <Menu className="w-5 h-5" />
         </Button>
 
+        {/* Botão temporário para corrigir membros */}
+        {!userRole && (
+          <Button
+            onClick={handleFixMembers}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold"
+            size="sm"
+          >
+            🔧 Corrigir Permissões
+          </Button>
+        )}
+
         {/* Search/Sort/Create Group */}
         <div className="flex items-center space-x-4 justify-between w-full mx-auto">
           <div className="relative flex-1 max-w-md">
@@ -641,34 +704,45 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
           <div className="flex justify-between items-center space-x-4 px-5 py-[14.5px] border-b border-zinc-800">
             <DropdownMenu open={isWorkspacePopupOpen} onOpenChange={setIsWorkspacePopupOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center h-auto hover:bg-background">
-                  <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
-                    {company?.logo_url ? (
-                      <img 
-                        src={company.logo_url} 
-                        alt={`${company.name} logo`}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white font-semibold">
-                        {getCompanyInitials(company?.name || 'Workspace')}
-                      </span>
-                    )}
+                <Button variant="ghost" className="flex items-center gap-2 h-auto hover:bg-background p-2">
+                  <Avatar className="w-10 h-10">
+                    <AvatarFallback className="bg-white/10 text-white">
+                      {getUserInitials(user?.fullName || user?.email || 'User')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start">
+                    <span className="font-semibold text-sm">{getUserDisplayName()}</span>
+                    <UserRoleBadge />
                   </div>
-                  <span className="font-semibold">{company?.name || 'Workspace'}</span>
-                  <UserRoleBadge />
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                  <ChevronDown className="w-4 h-4 text-gray-400 ml-auto" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
-                {canInviteUsers && (
+                <div className="px-2 py-1.5 text-xs text-gray-400">
+                  <p className="font-semibold">{user?.email}</p>
+                  <p className="text-xs">
+                    {userRole === 'OWNER' ? 'Owner' : userRole === 'ADMIN' ? 'Admin' : 'Member'}
+                  </p>
+                </div>
+                <DropdownMenuSeparator />
+                {canInviteUsers ? (
                   <DropdownMenuItem onClick={() => setIsInviteDialogOpen(true)}>
                     <UserPlus className="mr-2 h-4 w-4" />
                     <span>Gerar Link de Convite</span>
                   </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem disabled className="opacity-50">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    <span>Gerar Link de Convite</span>
+                  </DropdownMenuItem>
                 )}
-                {canAccessSettings && (
+                {canAccessSettings ? (
                   <DropdownMenuItem onClick={() => router.push('/workspaces/settings')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem disabled className="opacity-50">
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
