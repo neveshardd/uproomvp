@@ -3,10 +3,9 @@ import { z } from 'zod';
 
 // Schema de validação para variáveis de ambiente
 const envSchema = z.object({
-  // Supabase
-  SUPABASE_URL: z.string().url('SUPABASE_URL deve ser uma URL válida'),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY é obrigatório'),
-  SUPABASE_ANON_KEY: z.string().optional(),
+  // JWT
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET deve ter pelo menos 32 caracteres'),
+  JWT_EXPIRES_IN: z.string().default('7d'),
   
   // Database
   DATABASE_URL: z.string().url('DATABASE_URL deve ser uma URL válida'),
@@ -67,7 +66,7 @@ if (config.NODE_ENV === 'development') {
   console.log(`  📍 NODE_ENV: ${config.NODE_ENV}`);
   console.log(`  🚀 PORT: ${config.PORT}`);
   console.log(`  🌐 FRONTEND_URL: ${config.FRONTEND_URL}`);
-  console.log(`  🔗 SUPABASE_URL: ${config.SUPABASE_URL ? '✅ Configurado' : '❌ Não configurado'}`);
+  console.log(`  🔐 JWT_SECRET: ${config.JWT_SECRET ? '✅ Configurado' : '❌ Não configurado'}`);
   console.log(`  🗄️ DATABASE_URL: ${config.DATABASE_URL ? '✅ Configurado' : '❌ Não configurado'}`);
   console.log(`  🛡️ CORS_ORIGIN: ${config.CORS_ORIGIN ? '✅ Configurado' : '⚠️ Usando padrão'}`);
 }

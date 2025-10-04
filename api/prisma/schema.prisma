@@ -6,7 +6,6 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -15,7 +14,7 @@ model User {
   name      String?
   fullName  String?
   avatar    String?
-  password  String?
+  password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -50,6 +49,7 @@ model CompanyMember {
   userId    String
   companyId String
   role      String @default("MEMBER")
+  canInvite Boolean @default(false)
   createdAt DateTime @default(now())
 
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -68,13 +68,19 @@ model Invitation {
   companyId  String
   invitedById String
   status     String @default("PENDING")
+  expiresAt  DateTime?
+  usedCount  Int      @default(0)
+  maxUses    Int      @default(1)
+  acceptedAt DateTime?
+  receiverId String?
+  acceptedIp String?
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
 
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   invitedBy User    @relation("InvitationSender", fields: [invitedById], references: [id])
 
-  @@map("invitations")
+  @@map("invitation")
 }
 
 
@@ -113,6 +119,9 @@ model Message {
   type           String   @default("TEXT") // TEXT, IMAGE, FILE
   conversationId String
   userId         String
+  isPinned       Boolean  @default(false)
+  pinnedAt       DateTime?
+  pinnedBy       String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

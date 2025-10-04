@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/database';
-import { authenticateUser } from '../lib/auth';
+import { requireAuth } from '../lib/session-middleware';
 
 const updatePresenceSchema = z.object({
   status: z.enum(['AVAILABLE', 'BUSY', 'AWAY', 'OFFLINE']),
@@ -12,7 +12,7 @@ const updatePresenceSchema = z.object({
 export async function presenceRoutes(fastify: FastifyInstance) {
   // Get user presence for a company
   fastify.get('/:companyId', {
-    preHandler: authenticateUser,
+    preHandler: requireAuth,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { companyId } = request.params as { companyId: string };
@@ -63,7 +63,7 @@ export async function presenceRoutes(fastify: FastifyInstance) {
 
   // Update user presence
   fastify.put('/:companyId', {
-    preHandler: authenticateUser,
+    preHandler: requireAuth,
     schema: {
       body: {
         type: 'object',
@@ -129,7 +129,7 @@ export async function presenceRoutes(fastify: FastifyInstance) {
 
   // Get all company members presence
   fastify.get('/:companyId/members', {
-    preHandler: authenticateUser,
+    preHandler: requireAuth,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { companyId } = request.params as { companyId: string };

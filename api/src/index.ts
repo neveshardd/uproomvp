@@ -14,6 +14,7 @@ import { messageRoutes } from './routes/message';
 import { invitationRoutes } from './routes/invitation';
 import { userRoutes } from './routes/user';
 import { presenceRoutes } from './routes/presence';
+import { wsManager } from './lib/websocket';
 
 const fastify = Fastify({
   logger: {
@@ -87,21 +88,25 @@ const getCorsOrigins = () => {
   }
 
   const defaultOrigins = [
-    'http://localhost:8080',
+    'http://localhost:3000',
     'http://localhost:5173',
-    'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000',
     'http://127.0.0.1:5173',
-    // Domínio raiz sem www (frontend principal)
+    // Domínios principais
     'https://starvibe.space',
+    'https://uproom.com',
+    'https://uproomvp.vercel.app',
   ];
 
   const regexOrigins = [
     // Subdomínios de workspaces em produção
     /^https:\/\/[a-zA-Z0-9-]+\.starvibe\.space$/,
+    /^https:\/\/[a-zA-Z0-9-]+\.uproom\.com$/,
+    /^https:\/\/[a-zA-Z0-9-]+\.uproomvp\.vercel\.app$/,
     // Subdomínios de workspaces em dev local
-    /^http:\/\/[a-zA-Z0-9-]+\.localhost:8080$/,
+    /^http:\/\/[a-zA-Z0-9-]+\.localhost:3000$/,
     /^http:\/\/[a-zA-Z0-9-]+\.localhost:5173$/,
-    /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:8080$/,
+    /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:3000$/,
     /^http:\/\/[a-zA-Z0-9-]+\.127\.0\.0\.1:5173$/
   ];
 
@@ -109,7 +114,35 @@ const getCorsOrigins = () => {
 };
 
 fastify.register(cors, {
-  origin: getCorsOrigins(),
+  origin: (origin, callback) => {
+    console.log('🔍 [CORS] Checking origin:', origin);
+    const allowedOrigins = getCorsOrigins();
+    
+    // Allow requests with no origin (like mobile apps, Postman, curl)
+    if (!origin) {
+      console.log('✅ [CORS] Allowing request with no origin');
+      callback(null, true);
+      return;
+    }
+    
+    // Check if origin is in allowedOrigins
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') {
+        return allowed === origin;
+      } else if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowed) {
+      console.log('✅ [CORS] Origin allowed:', origin);
+      callback(null, true);
+    } else {
+      console.log('❌ [CORS] Origin not allowed:', origin);
+      callback(new Error('Not allowed by CORS'), false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
   allowedHeaders: [
@@ -120,13 +153,19 @@ fastify.register(cors, {
     'Origin',
     'X-Client-Info',
     'apikey',
-    'X-Supabase-Auth'
+    'X-Supabase-Auth',
+    'X-Workspace-Subdomain'
   ]
 });
 
 fastify.register(rateLimit, {
   max: config.RATE_LIMIT_MAX,
   timeWindow: config.RATE_LIMIT_TIME_WINDOW,
+  errorResponseBuilder: (request, context) => ({
+    statusCode: 429,
+    error: 'Too Many Requests',
+    message: `Rate limit exceeded, retry in ${context.after}`
+  })
 });
 
 // Register routes
@@ -220,6 +259,10 @@ const start = async () => {
       port: config.PORT, 
       host: '0.0.0.0' 
     });
+    
+    // Inicializar WebSocket
+    wsManager.initialize(fastify);
+    console.log('🔌 WebSocket server inicializado');
     
     console.log(`✅ Servidor rodando em http://localhost:${config.PORT}`);
     console.log(`📚 Documentação disponível em http://localhost:${config.PORT}/docs`);
