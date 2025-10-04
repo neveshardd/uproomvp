@@ -109,7 +109,7 @@ export const useSubdomain = () => {
     }
     
     // For production with custom domain
-    const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || process.env.NEXT_PUBLIC_DOMAIN || 'starvibe.space'
+    const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'starvibe.space'
     window.location.href = `${protocol}//${domain}`
   }
 
@@ -191,9 +191,19 @@ const getWorkspaceUrl = (subdomain: string) => {
   const protocol = window.location.protocol
   const hostname = window.location.hostname
   
+  // For localhost development
   if (hostname.includes('localhost')) {
-    return `${protocol}//${subdomain}.localhost:3000`
+    const devDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000'
+    return `${protocol}//${subdomain}.${devDomain}`
   }
   
-  return `${protocol}//${subdomain}.${hostname}`
+  // For Vercel deployment
+  if (hostname.includes('vercel.app')) {
+    const vercelDomain = process.env.NEXT_PUBLIC_VERCEL_DOMAIN || 'uproomvp.vercel.app'
+    return `${protocol}//${subdomain}.${vercelDomain}`
+  }
+  
+  // For production - use workspace domain from environment
+  const workspaceDomain = process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'
+  return `${protocol}//${subdomain}.${workspaceDomain}`
 }

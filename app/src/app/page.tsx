@@ -47,7 +47,7 @@ const LandingPage = () => {
   const handleGoToWorkspace = (subdomain: string) => {
     const workspaceUrl = process.env.NODE_ENV === 'development' 
       ? `http://${subdomain}.localhost:3000`
-      : `https://${subdomain}.uproom.com`;
+      : `https://${subdomain}.${process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'}`;
     
     console.log('🚀 LandingPage.handleGoToWorkspace:', {
       subdomain,
@@ -217,7 +217,7 @@ const LandingPage = () => {
                           )}
                         </div>
                         <CardDescription className="text-muted-foreground">
-                          {company.description || `${company.subdomain}.uproom.com`}
+                          {company.description || `${company.subdomain}.${process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'}`}
                         </CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">

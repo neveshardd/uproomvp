@@ -446,7 +446,7 @@ export default function CreateCompanyPage() {
                         }`}
                       />
                       <span className="inline-flex items-center px-3 rounded-r-md border-2 border-l-0 border-gray-300 bg-background text-gray-500 text-sm">
-                      .uproom.com
+                      .${process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'}
                     </span>
                       <div className="absolute right-6 top-1/2 transform -translate-y-1/2 mr-24">
                         {isCheckingSubdomain ? (

@@ -113,9 +113,12 @@ export default function AcceptInvitationPage() {
         });
 
         // Redirecionar para a workspace
+        const workspaceDomain = process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'
+        const devDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000'
+        
         const workspaceUrl = process.env.NODE_ENV === 'development' 
-          ? `http://${invitation?.company.subdomain}.localhost:3000`
-          : `https://${invitation?.company.subdomain}.uproom.com`;
+          ? `http://${invitation?.company.subdomain}.${devDomain}`
+          : `https://${invitation?.company.subdomain}.${workspaceDomain}`;
         
         window.location.href = workspaceUrl;
       } else {

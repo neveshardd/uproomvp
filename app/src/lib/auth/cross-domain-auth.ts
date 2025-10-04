@@ -86,13 +86,16 @@ export class CrossDomainAuth {
       return '.vercel.app'
     }
     
-    // For production domains
-    if (hostname.includes('uproom.com')) {
-      return '.uproom.com'
+    // For production domains - use environment variables
+    const workspaceDomain = process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'
+    const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'starvibe.space'
+    
+    if (hostname.includes(workspaceDomain)) {
+      return `.${workspaceDomain}`
     }
     
-    if (hostname.includes('starvibe.space')) {
-      return '.starvibe.space'
+    if (hostname.includes(mainDomain)) {
+      return `.${mainDomain}`
     }
     
     // Fallback to current domain
@@ -190,7 +193,7 @@ export class CrossDomainAuth {
     }
     
     // For production with custom domain
-    return process.env.NEXT_PUBLIC_MAIN_DOMAIN || process.env.NEXT_PUBLIC_DOMAIN || 'starvibe.space'
+    return process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'starvibe.space'
   }
 
   /**
@@ -264,9 +267,12 @@ export class CrossDomainAuth {
         const returnHost = url.hostname
         
         // Allow redirects to subdomains of the same base domain
+        const workspaceDomain = process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'
+        const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'starvibe.space'
+        
         const isTrustedDomain = returnHost === currentHost || 
-                               returnHost.endsWith('.starvibe.space') ||
-                               returnHost.endsWith('.uproom.com') ||
+                               returnHost.endsWith(`.${mainDomain}`) ||
+                               returnHost.endsWith(`.${workspaceDomain}`) ||
                                returnHost.includes('localhost')
         
         if (isTrustedDomain) {
