@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.presenceRoutes = presenceRoutes;
 const zod_1 = require("zod");
 const database_1 = require("../lib/database");
-const auth_1 = require("../lib/auth");
+const session_middleware_1 = require("../lib/session-middleware");
 const updatePresenceSchema = zod_1.z.object({
     status: zod_1.z.enum(['AVAILABLE', 'BUSY', 'AWAY', 'OFFLINE']),
     message: zod_1.z.string().optional(),
@@ -12,7 +12,7 @@ const updatePresenceSchema = zod_1.z.object({
 async function presenceRoutes(fastify) {
     // Get user presence for a company
     fastify.get('/:companyId', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { companyId } = request.params;
@@ -58,7 +58,7 @@ async function presenceRoutes(fastify) {
     });
     // Update user presence
     fastify.put('/:companyId', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
         schema: {
             body: {
                 type: 'object',
@@ -120,7 +120,7 @@ async function presenceRoutes(fastify) {
     });
     // Get all company members presence
     fastify.get('/:companyId/members', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { companyId } = request.params;

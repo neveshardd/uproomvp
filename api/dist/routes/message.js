@@ -3,7 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.messageRoutes = messageRoutes;
 const zod_1 = require("zod");
 const database_1 = require("../lib/database");
-const auth_1 = require("../lib/auth");
+const session_middleware_1 = require("../lib/session-middleware");
+const websocket_1 = require("../lib/websocket");
 const createMessageSchema = zod_1.z.object({
     content: zod_1.z.string().min(1),
     conversationId: zod_1.z.string(),
@@ -15,7 +16,7 @@ const updateMessageSchema = zod_1.z.object({
 async function messageRoutes(fastify) {
     // Criar mensagem
     fastify.post('/', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { content, conversationId, type } = createMessageSchema.parse(request.body);
@@ -47,6 +48,8 @@ async function messageRoutes(fastify) {
                 where: { id: conversationId },
                 data: { updatedAt: new Date() },
             });
+            // Notificar via WebSocket
+            websocket_1.wsManager.notifyNewMessage(message, conversationId);
             return { message };
         }
         catch (error) {
@@ -55,7 +58,7 @@ async function messageRoutes(fastify) {
     });
     // Listar mensagens de uma conversa
     fastify.get('/conversation/:conversationId', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { conversationId } = request.params;
@@ -103,7 +106,7 @@ async function messageRoutes(fastify) {
     });
     // Obter mensagem por ID
     fastify.get('/:id', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { id } = request.params;
@@ -135,7 +138,7 @@ async function messageRoutes(fastify) {
     });
     // Atualizar mensagem
     fastify.put('/:id', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { id } = request.params;
@@ -166,7 +169,7 @@ async function messageRoutes(fastify) {
     });
     // Deletar mensagem
     fastify.delete('/:id', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { id } = request.params;
@@ -185,6 +188,99 @@ async function messageRoutes(fastify) {
                 where: { id },
             });
             return { success: true };
+        }
+        catch (error) {
+            return reply.status(500).send({ error: 'Erro interno' });
+        }
+    });
+    // Fixar mensagem
+    fastify.post('/:id/pin', {
+        preHandler: session_middleware_1.requireAuth,
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+            const userId = request.user.id;
+            // Verificar se a mensagem existe e o usuário tem acesso
+            const message = await database_1.prisma.message.findFirst({
+                where: {
+                    id,
+                    conversation: {
+                        participants: {
+                            some: {
+                                userId,
+                            },
+                        },
+                    },
+                },
+                include: {
+                    conversation: true,
+                },
+            });
+            if (!message) {
+                return reply.status(404).send({ error: 'Mensagem não encontrada' });
+            }
+            // Atualizar mensagem como fixada
+            const updatedMessage = await database_1.prisma.message.update({
+                where: { id },
+                data: {
+                    isPinned: true,
+                    pinnedAt: new Date(),
+                    pinnedBy: userId,
+                },
+                include: {
+                    user: true,
+                },
+            });
+            console.log('📌 Mensagem fixada:', {
+                messageId: id,
+                isPinned: updatedMessage.isPinned,
+                pinnedBy: updatedMessage.pinnedBy,
+                pinnedAt: updatedMessage.pinnedAt
+            });
+            return { success: true, message: updatedMessage };
+        }
+        catch (error) {
+            return reply.status(500).send({ error: 'Erro interno' });
+        }
+    });
+    // Desfixar mensagem
+    fastify.post('/:id/unpin', {
+        preHandler: session_middleware_1.requireAuth,
+    }, async (request, reply) => {
+        try {
+            const { id } = request.params;
+            // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
+            const userId = request.user.id;
+            // Verificar se a mensagem existe e o usuário tem acesso
+            const message = await database_1.prisma.message.findFirst({
+                where: {
+                    id,
+                    conversation: {
+                        participants: {
+                            some: {
+                                userId,
+                            },
+                        },
+                    },
+                },
+            });
+            if (!message) {
+                return reply.status(404).send({ error: 'Mensagem não encontrada' });
+            }
+            // Atualizar mensagem como não fixada
+            const updatedMessage = await database_1.prisma.message.update({
+                where: { id },
+                data: {
+                    isPinned: false,
+                    pinnedAt: null,
+                    pinnedBy: null,
+                },
+                include: {
+                    user: true,
+                },
+            });
+            return { success: true, message: updatedMessage };
         }
         catch (error) {
             return reply.status(500).send({ error: 'Erro interno' });

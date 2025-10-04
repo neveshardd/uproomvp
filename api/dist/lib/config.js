@@ -5,10 +5,9 @@ require("dotenv/config");
 const zod_1 = require("zod");
 // Schema de validação para variáveis de ambiente
 const envSchema = zod_1.z.object({
-    // Supabase
-    SUPABASE_URL: zod_1.z.string().url('SUPABASE_URL deve ser uma URL válida'),
-    SUPABASE_SERVICE_ROLE_KEY: zod_1.z.string().min(1, 'SUPABASE_SERVICE_ROLE_KEY é obrigatório'),
-    SUPABASE_ANON_KEY: zod_1.z.string().optional(),
+    // JWT
+    JWT_SECRET: zod_1.z.string().min(32, 'JWT_SECRET deve ter pelo menos 32 caracteres'),
+    JWT_EXPIRES_IN: zod_1.z.string().default('7d'),
     // Database
     DATABASE_URL: zod_1.z.string().url('DATABASE_URL deve ser uma URL válida'),
     DIRECT_URL: zod_1.z.string().url().optional(),
@@ -56,7 +55,7 @@ if (exports.config.NODE_ENV === 'development') {
     console.log(`  📍 NODE_ENV: ${exports.config.NODE_ENV}`);
     console.log(`  🚀 PORT: ${exports.config.PORT}`);
     console.log(`  🌐 FRONTEND_URL: ${exports.config.FRONTEND_URL}`);
-    console.log(`  🔗 SUPABASE_URL: ${exports.config.SUPABASE_URL ? '✅ Configurado' : '❌ Não configurado'}`);
+    console.log(`  🔐 JWT_SECRET: ${exports.config.JWT_SECRET ? '✅ Configurado' : '❌ Não configurado'}`);
     console.log(`  🗄️ DATABASE_URL: ${exports.config.DATABASE_URL ? '✅ Configurado' : '❌ Não configurado'}`);
     console.log(`  🛡️ CORS_ORIGIN: ${exports.config.CORS_ORIGIN ? '✅ Configurado' : '⚠️ Usando padrão'}`);
 }

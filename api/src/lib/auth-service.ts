@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { prisma } from './database'
 import { config } from './config'
-import { User, UserRole } from '@prisma/client'
+import { User } from '@prisma/client'
 
 export interface AuthUser {
   id: string
@@ -40,14 +40,13 @@ export class AuthService {
    * Generate JWT token
    */
   static generateToken(user: AuthUser): string {
-    return jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email 
-      },
-      this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
-    )
+    const payload = { 
+      userId: user.id, 
+      email: user.email 
+    };
+    return jwt.sign(payload, this.JWT_SECRET, { 
+      expiresIn: '7d' 
+    });
   }
 
   /**

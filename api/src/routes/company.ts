@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../lib/database';
-import { requireAuth } from '../lib/session-middleware';
+import { requireAuth, AuthenticatedRequest } from '../lib/session-middleware';
 
 const createCompanySchema = z.object({
   name: z.string().min(1, 'Company name is required'),
@@ -117,8 +117,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
       }
       
       const { name, subdomain, description } = validatedData;
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      const userId = request.user.id;
+      const userId = (request as AuthenticatedRequest).user.id;
       console.log('Parsed data:', { name, subdomain, description, userId });
 
       // Verificar se o subdomínio já existe
@@ -160,8 +159,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
     preHandler: requireAuth,
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      const userId = request.user.id;
+      const userId = (request as AuthenticatedRequest).user.id;
 
       const companies = await prisma.company.findMany({
         where: {
@@ -195,11 +193,10 @@ export async function companyRoutes(fastify: FastifyInstance) {
       const { userId } = request.params as { userId: string };
       
       console.log('🔍 Company API: Buscando empresas para usuário:', userId);
-      console.log('🔍 Company API: Usuário autenticado:', request.user.id);
+      console.log('🔍 Company API: Usuário autenticado:', (request as AuthenticatedRequest).user.id);
       
       // Verificar se o usuário está tentando acessar suas próprias empresas
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      if (request.user.id !== userId) {
+      if ((request as AuthenticatedRequest).user.id !== userId) {
         console.log('❌ Company API: Usuário tentando acessar empresas de outro usuário');
         return reply.status(403).send({ error: 'Acesso negado' });
       }
@@ -253,8 +250,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      const userId = request.user.id;
+      const userId = (request as AuthenticatedRequest).user.id;
 
       const company = await prisma.company.findFirst({
         where: {
@@ -290,8 +286,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      const userId = request.user.id;
+      const userId = (request as AuthenticatedRequest).user.id;
       const updateData = updateCompanySchema.parse(request.body);
 
       // Verificar se o usuário é owner da empresa
@@ -485,8 +480,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      const userId = request.user.id;
+      const userId = (request as AuthenticatedRequest).user.id;
 
       console.log('🔍 Company API: Buscando membros para company:', id);
       console.log('🔍 Company API: Usuário autenticado:', userId);
@@ -537,8 +531,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id, userId } = request.params as { id: string; userId: string };
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      const authenticatedUserId = request.user.id;
+      const authenticatedUserId = (request as AuthenticatedRequest).user.id;
 
       // Verificar se o usuário autenticado é membro da empresa
       const membership = await prisma.companyMember.findFirst({
@@ -577,8 +570,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const { id } = request.params as { id: string };
-      // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
-      const userId = request.user.id;
+      const userId = (request as AuthenticatedRequest).user.id;
 
       // Buscar o role do usuário autenticado nesta empresa
       const membership = await prisma.companyMember.findFirst({

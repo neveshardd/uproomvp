@@ -2,107 +2,73 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authRoutes = authRoutes;
 const database_1 = require("../lib/database");
-const supabase_1 = require("../lib/supabase");
-const config_1 = require("../lib/config");
+const auth_service_1 = require("../lib/auth-service");
 const validation_1 = require("../lib/validation");
 const errors_1 = require("../lib/errors");
 async function authRoutes(fastify) {
     // Login otimizado
     fastify.post('/signin', (0, errors_1.withErrorHandling)(async (request, reply) => {
         const { email, password } = (0, validation_1.validateData)(validation_1.signInSchema, request.body);
-        const { data, error } = await supabase_1.supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-        if (error) {
-            throw new errors_1.AuthenticationError(error.message);
+        const result = await auth_service_1.AuthService.signIn(email, password);
+        if (!result.success) {
+            throw new errors_1.AuthenticationError(result.error || 'Falha na autenticação');
         }
-        if (!data.user || !data.session) {
+        if (!result.user || !result.token) {
             throw new errors_1.AuthenticationError('Falha na autenticação');
         }
-        // Criar ou atualizar usuário no banco local
-        const user = await database_1.prisma.user.upsert({
-            where: { id: data.user.id },
-            update: {
-                email: data.user.email,
-                fullName: data.user.user_metadata?.full_name || data.user.user_metadata?.name,
-                avatar: data.user.user_metadata?.avatar_url,
-            },
-            create: {
-                id: data.user.id,
-                email: data.user.email,
-                fullName: data.user.user_metadata?.full_name || data.user.user_metadata?.name,
-                avatar: data.user.user_metadata?.avatar_url,
-                password: '', // Não precisamos armazenar senha com Supabase
-            },
-        });
         return {
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
-                avatar: user.avatar,
+            user: result.user,
+            session: {
+                access_token: result.token,
+                refresh_token: '', // We'll handle this if needed
+                expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+                user: result.user
             },
-            session: data.session,
         };
     }));
     // Registro otimizado
     fastify.post('/signup', (0, errors_1.withErrorHandling)(async (request, reply) => {
-        const { email, password, fullName } = (0, validation_1.validateData)(validation_1.signUpSchema, request.body);
-        const { data, error } = await supabase_1.supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: fullName,
-                },
-            },
+        console.log('🔍 [SIGNUP] Recebendo requisição de signup:', {
+            headers: request.headers,
+            body: request.body
         });
-        if (error) {
-            throw new errors_1.AuthenticationError(error.message);
+        const { email, password, fullName } = (0, validation_1.validateData)(validation_1.signUpSchema, request.body);
+        console.log('🔍 [SIGNUP] Dados validados:', { email, fullName });
+        const result = await auth_service_1.AuthService.signUp(email, password, fullName);
+        console.log('🔍 [SIGNUP] Resultado do AuthService:', result);
+        if (!result.success) {
+            console.error('❌ [SIGNUP] Erro no AuthService:', result.error);
+            throw new errors_1.AuthenticationError(result.error || 'Falha ao criar usuário');
         }
-        if (!data.user) {
+        if (!result.user || !result.token) {
+            console.error('❌ [SIGNUP] Usuário ou token não encontrado');
             throw new errors_1.AuthenticationError('Falha ao criar usuário');
         }
-        // Criar usuário no banco local
-        const user = await database_1.prisma.user.create({
-            data: {
-                id: data.user.id,
-                email: data.user.email,
-                fullName: fullName,
-                password: '', // Não precisamos armazenar senha com Supabase
-            },
-        });
+        console.log('✅ [SIGNUP] Usuário criado com sucesso:', result.user.email);
         return {
-            user: {
-                id: user.id,
-                email: user.email,
-                fullName: user.fullName,
+            user: result.user,
+            session: {
+                access_token: result.token,
+                refresh_token: '', // We'll handle this if needed
+                expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+                user: result.user
             },
-            requiresConfirmation: !data.session,
-            message: data.session ? 'Conta criada com sucesso' : 'Verifique seu email para confirmar a conta',
+            requiresConfirmation: false,
+            message: 'Conta criada com sucesso',
         };
     }));
     // Logout otimizado
     fastify.post('/signout', (0, errors_1.withErrorHandling)(async (request, reply) => {
-        const authHeader = request.headers.authorization;
-        if (!authHeader) {
-            throw new errors_1.AuthenticationError('Token não fornecido');
-        }
-        const { error } = await supabase_1.supabase.auth.signOut();
-        if (error) {
-            throw new errors_1.AuthenticationError(error.message);
-        }
+        // With JWT, logout is handled on the client side by removing the token
+        // No server-side action needed for stateless JWT
         return { message: 'Logout realizado com sucesso' };
     }));
     // Reset de senha otimizado
     fastify.post('/reset-password', (0, errors_1.withErrorHandling)(async (request, reply) => {
         const { email } = (0, validation_1.validateData)(validation_1.resetPasswordSchema, request.body);
-        const { error } = await supabase_1.supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${config_1.config.FRONTEND_URL}/reset-password`,
-        });
-        if (error) {
-            throw new errors_1.AuthenticationError(error.message);
+        const result = await auth_service_1.AuthService.resetPassword(email);
+        if (!result.success) {
+            throw new errors_1.AuthenticationError(result.error || 'Falha ao enviar email de recuperação');
         }
         return { message: 'Email de recuperação enviado' };
     }));
@@ -113,11 +79,14 @@ async function authRoutes(fastify) {
         if (!authHeader) {
             throw new errors_1.AuthenticationError('Token não fornecido');
         }
-        const { error } = await supabase_1.supabase.auth.updateUser({
-            password: password,
-        });
-        if (error) {
-            throw new errors_1.AuthenticationError(error.message);
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = auth_service_1.AuthService.verifyToken(token);
+        if (!decoded) {
+            throw new errors_1.AuthenticationError('Token inválido');
+        }
+        const result = await auth_service_1.AuthService.updatePassword(decoded.userId, password);
+        if (!result.success) {
+            throw new errors_1.AuthenticationError(result.error || 'Falha ao atualizar senha');
         }
         return { message: 'Senha atualizada com sucesso' };
     }));
@@ -128,14 +97,14 @@ async function authRoutes(fastify) {
             throw new errors_1.AuthenticationError('Token não fornecido');
         }
         const token = authHeader.replace('Bearer ', '');
-        // Verificar token com Supabase
-        const { data: { user }, error } = await supabase_1.supabase.auth.getUser(token);
-        if (error || !user) {
+        // Verificar token JWT
+        const decoded = auth_service_1.AuthService.verifyToken(token);
+        if (!decoded) {
             throw new errors_1.AuthenticationError('Token inválido');
         }
         // Buscar dados do usuário no banco local
         const dbUser = await database_1.prisma.user.findUnique({
-            where: { id: user.id },
+            where: { id: decoded.userId },
         });
         if (!dbUser) {
             return reply.status(404).send({ error: 'Usuário não encontrado' });
@@ -156,11 +125,23 @@ async function authRoutes(fastify) {
         if (!authHeader) {
             throw new errors_1.AuthenticationError('Token não fornecido');
         }
-        const { data: { session }, error } = await supabase_1.supabase.auth.getSession();
-        if (error || !session) {
-            throw new errors_1.AuthenticationError('Sessão inválida');
+        const token = authHeader.replace('Bearer ', '');
+        const decoded = auth_service_1.AuthService.verifyToken(token);
+        if (!decoded) {
+            throw new errors_1.AuthenticationError('Token inválido');
         }
-        return { session };
+        const user = await auth_service_1.AuthService.getUserByToken(token);
+        if (!user) {
+            throw new errors_1.AuthenticationError('Usuário não encontrado');
+        }
+        return {
+            session: {
+                access_token: token,
+                refresh_token: '',
+                expires_at: Date.now() + (7 * 24 * 60 * 60 * 1000),
+                user: user
+            }
+        };
     }));
 }
 //# sourceMappingURL=auth.js.map

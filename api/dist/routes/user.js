@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.userRoutes = userRoutes;
 const database_1 = require("../lib/database");
-const auth_1 = require("../lib/auth");
+const session_middleware_1 = require("../lib/session-middleware");
 async function userRoutes(fastify) {
     // Obter perfil do usuário
     fastify.get('/profile', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
@@ -32,7 +32,7 @@ async function userRoutes(fastify) {
     });
     // Listar usuários de uma empresa
     fastify.get('/company/:companyId', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { companyId } = request.params;
@@ -63,7 +63,7 @@ async function userRoutes(fastify) {
     });
     // Buscar usuários por email
     fastify.get('/search', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { email, companyId } = request.query;
@@ -96,7 +96,7 @@ async function userRoutes(fastify) {
     });
     // Atualizar perfil do usuário
     fastify.put('/profile', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser

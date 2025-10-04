@@ -3,7 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.conversationRoutes = conversationRoutes;
 const zod_1 = require("zod");
 const database_1 = require("../lib/database");
-const auth_1 = require("../lib/auth");
+const session_middleware_1 = require("../lib/session-middleware");
+const websocket_1 = require("../lib/websocket");
 const createConversationSchema = zod_1.z.object({
     title: zod_1.z.string().min(1),
     companyId: zod_1.z.string(),
@@ -16,7 +17,7 @@ const updateConversationSchema = zod_1.z.object({
 async function conversationRoutes(fastify) {
     // Criar conversa
     fastify.post('/', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { title, companyId, type, participantIds } = createConversationSchema.parse(request.body);
@@ -48,6 +49,8 @@ async function conversationRoutes(fastify) {
                     userId: participantId,
                 })),
             });
+            // Notificar via WebSocket sobre nova conversa
+            websocket_1.wsManager.notifyNewConversation(conversation.id, participants, companyId);
             return { conversation };
         }
         catch (error) {
@@ -56,7 +59,7 @@ async function conversationRoutes(fastify) {
     });
     // Listar conversas do usuário
     fastify.get('/', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             // @ts-expect-error: 'user' é adicionado pelo middleware authenticateUser
@@ -98,7 +101,7 @@ async function conversationRoutes(fastify) {
     });
     // Obter conversa por ID
     fastify.get('/:id', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { id } = request.params;
@@ -138,7 +141,7 @@ async function conversationRoutes(fastify) {
     });
     // Atualizar conversa
     fastify.put('/:id', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { id } = request.params;
@@ -167,7 +170,7 @@ async function conversationRoutes(fastify) {
     });
     // Adicionar participante à conversa
     fastify.post('/:id/participants', {
-        preHandler: auth_1.authenticateUser,
+        preHandler: session_middleware_1.requireAuth,
     }, async (request, reply) => {
         try {
             const { id } = request.params;
