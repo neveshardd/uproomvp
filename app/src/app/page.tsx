@@ -35,6 +35,15 @@ const LandingPage = () => {
   const [isCreatingCompany, setIsCreatingCompany] = useState(false);
   const [filter, setFilter] = useState<'all' | 'owner' | 'member'>('all');
 
+  // Debug logs
+  console.log('🔍 LandingPage: Renderizando com:', {
+    user: !!user,
+    loading,
+    userCompanies: userCompanies.length,
+    isLoading,
+    userCompaniesData: userCompanies
+  });
+
   const handleGetStarted = () => {
     // Navigation will be handled by Next.js Link
   };
