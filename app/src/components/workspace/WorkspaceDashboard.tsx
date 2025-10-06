@@ -7,7 +7,6 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { useChat } from '@/contexts/ChatContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWebSocket } from '@/hooks/useWebSocket';
-import { UserRoleBadge } from './UserRoleBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -840,8 +839,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
 
   return (
     <div className="h-screen bg-background text-white flex flex-col">
-      {/* Workspace Header */}
-      <WorkspaceHeader company={company || currentCompany} />
       
       {/* Top Header - User Info + Search/Sort/Create Group - Fixed */}
       <div className="bg-background border-b border-zinc-800 px-5 py-6 flex items-center justify-between fixed top-0 left-0 md:left-64 right-0 z-50">
@@ -855,19 +852,8 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
           <Menu className="w-5 h-5" />
         </Button>
 
-        {/* Botão temporário para corrigir membros */}
-        {!userRole && (
-          <Button
-            onClick={handleFixMembers}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold"
-            size="sm"
-          >
-            🔧 Corrigir Permissões
-          </Button>
-        )}
-
         {/* Search/Sort/Create Group */}
-        <div className="flex items-center space-x-4 justify-between w-full mx-auto">
+        <div className="flex items-center space-x-4 justify-between w-full mx-auto pb-0.5">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
@@ -916,7 +902,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
                   </Avatar>
                   <div className="flex flex-col items-start">
                     <span className="font-semibold text-sm">{getUserDisplayName()}</span>
-                    <UserRoleBadge />
                   </div>
                   <ChevronDown className="w-4 h-4 text-gray-400 ml-auto" />
                 </Button>
@@ -1157,9 +1142,7 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
         </div>
 
         {/* Center Area - Team Members Grid */}
-        <div className="flex-1 bg-background p-6 overflow-y-auto" style={{
-            marginTop: '0px'    // Sem margem superior
-          }}>
+        <div className="flex-1 bg-background p-6 overflow-y-auto pt-28">
           
           {loadingMembers ? (
             <div className="flex items-center justify-center h-64">
@@ -1235,7 +1218,7 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
         </div>
 
         {/* Right Sidebar - Chat Conversation */}
-        <div className={`bg-background border-l-2 border-stone-800 transition-all duration-300 flex flex-col ${!isChatExpanded ? 'w-0 overflow-hidden' : isChatCollapsed ? 'w-96' : 'w-full md:w-6/12'
+        <div className={`bg-background border-l-2 pt-[90px] border-stone-800 transition-all duration-300 flex flex-col ${!isChatExpanded ? 'w-0 overflow-hidden' : isChatCollapsed ? 'w-96' : 'w-full md:w-6/12'
           }`}>
           {!isChatExpanded && (
             <div className="flex flex-col items-center justify-center h-full space-y-4">
