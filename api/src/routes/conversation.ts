@@ -304,7 +304,6 @@ export async function conversationRoutes(fastify: FastifyInstance) {
 
       return { success: true };
     } catch (error) {
-      console.error('Erro ao deletar conversa:', error);
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });
@@ -342,7 +341,6 @@ export async function conversationRoutes(fastify: FastifyInstance) {
 
       return { success: true };
     } catch (error) {
-      console.error('Erro ao arquivar conversa:', error);
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });
@@ -380,7 +378,6 @@ export async function conversationRoutes(fastify: FastifyInstance) {
 
       return { success: true };
     } catch (error) {
-      console.error('Erro ao desarquivar conversa:', error);
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });

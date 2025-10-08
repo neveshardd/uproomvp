@@ -57,7 +57,6 @@ export async function presenceRoutes(fastify: FastifyInstance) {
 
       return { presence };
     } catch (error) {
-      console.error('Error getting user presence:', error);
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });
@@ -124,11 +123,10 @@ export async function presenceRoutes(fastify: FastifyInstance) {
       // Notificar via WebSocket sobre a mudança de presença
       wsManager.notifyPresenceUpdate(userId, companyId, presence);
 
-      console.log('✅ Presence updated and broadcast:', { userId, companyId, status: presence.status });
 
       return { presence };
     } catch (error) {
-      console.error('Error updating user presence:', error);
+
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });
@@ -173,7 +171,7 @@ export async function presenceRoutes(fastify: FastifyInstance) {
 
       return { presences };
     } catch (error) {
-      console.error('Error getting company presences:', error);
+
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });

@@ -26,7 +26,6 @@ export default function WorkspaceRegisterPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !loading) {
-      console.log('🔍 WorkspaceRegister: Usuário já autenticado, redirecionando para dashboard');
       router.push('/');
     }
   }, [user, loading, router]);
@@ -47,12 +46,12 @@ export default function WorkspaceRegisterPage() {
         if (result.requiresConfirmation) {
           setSuccess(result.message || 'Account created successfully! Please check your email to confirm your account.');
         } else {
-          console.log('✅ WorkspaceRegister: Registro realizado com sucesso');
+          console.log('WorkspaceRegister: Registro realizado com sucesso');
           // Redirect will be handled by the useEffect above
         }
       }
     } catch (error) {
-      console.error('❌ WorkspaceRegister: Erro no registro:', error);
+      console.error('WorkspaceRegister: Erro no registro:', error);
       setError('Erro inesperado. Tente novamente.');
     } finally {
       setIsSubmitting(false);

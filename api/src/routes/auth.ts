@@ -1,7 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../lib/database';
 import { AuthService } from '../lib/auth-service';
-import { config } from '../lib/config';
 import { 
   signInSchema, 
   signUpSchema, 
@@ -11,7 +10,6 @@ import {
 } from '../lib/validation';
 import { 
   AuthenticationError, 
-  ValidationError, 
   withErrorHandling 
 } from '../lib/errors';
 
@@ -43,30 +41,17 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Registro otimizado
   fastify.post('/signup', withErrorHandling(async (request: FastifyRequest, reply: FastifyReply) => {
-    console.log('🔍 [SIGNUP] Recebendo requisição de signup:', {
-      headers: request.headers,
-      body: request.body
-    });
 
     const { email, password, fullName } = validateData(signUpSchema, request.body);
-
-    console.log('🔍 [SIGNUP] Dados validados:', { email, fullName });
-
     const result = await AuthService.signUp(email, password, fullName);
 
-    console.log('🔍 [SIGNUP] Resultado do AuthService:', result);
-
     if (!result.success) {
-      console.error('❌ [SIGNUP] Erro no AuthService:', result.error);
       throw new AuthenticationError(result.error || 'Falha ao criar usuário');
     }
 
     if (!result.user || !result.token) {
-      console.error('❌ [SIGNUP] Usuário ou token não encontrado');
       throw new AuthenticationError('Falha ao criar usuário');
     }
-
-    console.log('✅ [SIGNUP] Usuário criado com sucesso:', result.user.email);
 
     return {
       user: result.user,

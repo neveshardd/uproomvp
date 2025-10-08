@@ -342,13 +342,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        console.error('❌ ChatContext: Nenhum token encontrado');
+        console.error('Nenhum token encontrado');
         dispatch({ type: 'SET_ERROR', payload: 'Token de autenticação não encontrado' });
         return;
       }
-      
-      console.log('🔍 ChatContext: Carregando conversas para company:', currentCompany.id);
-      console.log('🔍 ChatContext: Token encontrado:', !!token);
       
       const response = await fetch(`${apiUrl}/conversations?companyId=${currentCompany.id}`, {
         headers: {
@@ -357,19 +354,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         },
       });
 
-      console.log('🔍 ChatContext: Resposta do servidor:', response.status, response.statusText);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ ChatContext: Erro na resposta:', errorText);
+        console.error('Erro na resposta:', errorText);
         throw new Error(`Erro ao carregar conversas: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       dispatch({ type: 'SET_CONVERSATIONS', payload: data.conversations });
     } catch (error) {
-      console.error('❌ ChatContext: Erro ao carregar conversas:', error);
-      console.error('❌ ChatContext: Detalhes do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
+      console.error('Erro ao carregar conversas:', error);
+      console.error('Detalhes do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
       dispatch({ type: 'SET_ERROR', payload: `Erro ao carregar conversas: ${error instanceof Error ? error.message : 'Erro desconhecido'}` });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -382,12 +377,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        console.error('❌ ChatContext: Nenhum token encontrado para carregar mensagens');
+        console.error('Nenhum token encontrado para carregar mensagens');
         return;
       }
-      
-      console.log('🔍 ChatContext: Carregando mensagens para conversa:', conversationId);
-      console.log('🔍 ChatContext: Token encontrado:', !!token);
       
       const response = await fetch(`${apiUrl}/messages/conversation/${conversationId}`, {
         headers: {
@@ -396,19 +388,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         },
       });
       
-      console.log('🔍 ChatContext: Resposta do servidor para mensagens:', response.status, response.statusText);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ ChatContext: Erro na resposta ao carregar mensagens:', errorText);
+        console.error('Erro na resposta ao carregar mensagens:', errorText);
         throw new Error(`Erro ao carregar mensagens: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       dispatch({ type: 'SET_MESSAGES', payload: { conversationId, messages: data.messages } });
     } catch (error) {
-      console.error('❌ ChatContext: Erro ao carregar mensagens:', error);
-      console.error('❌ ChatContext: Detalhes do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
+      console.error('Erro ao carregar mensagens:', error);
+      console.error('Detalhes do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
       dispatch({ type: 'SET_ERROR', payload: `Erro ao carregar mensagens: ${error instanceof Error ? error.message : 'Erro desconhecido'}` });
     }
   };
@@ -423,12 +413,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        console.error('❌ ChatContext: Nenhum token encontrado para criar conversa');
+        console.error('Nenhum token encontrado para criar conversa');
         return null;
       }
-      
-      console.log('🔍 ChatContext: Criando conversa:', { title, companyId: currentCompany.id, type, participantIds });
-      console.log('🔍 ChatContext: Token encontrado:', !!token);
       
       const response = await fetch(`${apiUrl}/conversations`, {
         method: 'POST',
@@ -444,26 +431,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }),
       });
       
-      console.log('🔍 ChatContext: Resposta do servidor para criar conversa:', response.status, response.statusText);
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ ChatContext: Erro na resposta ao criar conversa:', errorText);
+        console.error('Erro na resposta ao criar conversa:', errorText);
         throw new Error(`Erro ao criar conversa: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log('🔍 ChatContext: Conversa criada:', data.conversation);
       dispatch({ type: 'ADD_CONVERSATION', payload: data.conversation });
-      
-      // Auto-selecionar a conversa recém-criada
-      console.log('🔍 ChatContext: Auto-selecionando conversa:', data.conversation.id);
       dispatch({ type: 'SET_SELECTED_CONVERSATION', payload: data.conversation });
       
       return data.conversation;
     } catch (error) {
-      console.error('❌ ChatContext: Erro ao criar conversa:', error);
-      console.error('❌ ChatContext: Detalhes do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
+      console.error('Erro ao criar conversa:', error);
+      console.error('Detalhes do erro:', error instanceof Error ? error.message : 'Erro desconhecido');
       dispatch({ type: 'SET_ERROR', payload: `Erro ao criar conversa: ${error instanceof Error ? error.message : 'Erro desconhecido'}` });
       return null;
     }
@@ -490,7 +471,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        console.error('❌ ChatContext: Nenhum token encontrado para fixar mensagem');
+        console.error('Nenhum token encontrado para fixar mensagem');
         return;
       }
 
@@ -502,16 +483,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       });
 
       if (response.ok) {
-        console.log('✅ Mensagem fixada com sucesso:', { conversationId, messageId, pinnedBy: user.id });
         dispatch({ 
           type: 'PIN_MESSAGE', 
           payload: { conversationId, messageId, pinnedBy: user.id } 
         });
       } else {
-        console.error('❌ Erro ao fixar mensagem:', response.status, response.statusText);
+        console.error('Erro ao fixar mensagem:', response.status, response.statusText);
       }
     } catch (error) {
-      console.error('❌ ChatContext: Erro ao fixar mensagem:', error);
+      console.error('Erro ao fixar mensagem:', error);
     }
   };
 
@@ -521,7 +501,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        console.error('❌ ChatContext: Nenhum token encontrado para desfixar mensagem');
+        console.error('Nenhum token encontrado para desfixar mensagem');
         return;
       }
 
@@ -539,7 +519,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         });
       }
     } catch (error) {
-      console.error('❌ ChatContext: Erro ao desfixar mensagem:', error);
+      console.error('Erro ao desfixar mensagem:', error);
     }
   };
 

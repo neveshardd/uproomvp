@@ -62,17 +62,14 @@ export const useWebSocket = (events: WebSocketEvents) => {
 
     socketRef.current = socket;
 
-    // Eventos de conexão
     socket.on('connect', () => {
-      console.log('🔌 WebSocket conectado');
       setIsConnected(true);
       setIsConnecting(false);
       reconnectAttempts.current = 0;
 
-      // Autenticar com o servidor
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        console.error('❌ useWebSocket: Nenhum token encontrado');
+        console.error('Nenhum token encontrado');
         socket.emit('auth_error', { message: 'Token não encontrado' });
         return;
       }
@@ -84,24 +81,18 @@ export const useWebSocket = (events: WebSocketEvents) => {
     });
 
     socket.on('authenticated', (data) => {
-      console.log('✅ WebSocket autenticado:', data);
     });
 
     socket.on('auth_error', (error) => {
-      console.error('❌ Erro de autenticação WebSocket:', error);
-      console.error('❌ WebSocket: Detalhes do erro:', error);
       setIsConnecting(false);
     });
 
     socket.on('disconnect', (reason) => {
-      console.log('🔌 WebSocket desconectado:', reason);
       setIsConnected(false);
       setIsConnecting(false);
 
-      // Tentar reconectar se não foi uma desconexão intencional
       if (reason !== 'io client disconnect' && reconnectAttempts.current < maxReconnectAttempts) {
         const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-        console.log(`🔄 Tentando reconectar em ${delay}ms...`);
         
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnectAttempts.current++;
@@ -111,43 +102,34 @@ export const useWebSocket = (events: WebSocketEvents) => {
     });
 
     socket.on('connect_error', (error) => {
-      console.error('❌ Erro de conexão WebSocket:', error);
       setIsConnecting(false);
     });
 
-    // Eventos de chat
     socket.on('new_message', (data: { message: Message; conversationId: string }) => {
-      console.log('📨 Nova mensagem recebida:', data);
       events.onMessage(data.message);
     });
 
     socket.on('user_typing', (data: { userId: string; conversationId: string; isTyping: boolean }) => {
-      console.log('⌨️ Usuário digitando:', data);
       events.onTyping(data);
     });
 
     socket.on('user_status_changed', (data: { userId: string; status: 'online' | 'offline'; timestamp: string }) => {
-      console.log('👤 Status do usuário mudou:', data);
       events.onUserStatus(data);
     });
 
     socket.on('new_conversation', (data: { conversationId: string; participantIds: string[] }) => {
-      console.log('💬 Nova conversa criada:', data);
       events.onNewConversation(data);
     });
 
     socket.on('presence_updated', (data: { userId: string; presence: PresenceData; timestamp: string }) => {
-      console.log('👤 Presença atualizada:', data);
       if (events.onPresenceUpdate) {
         events.onPresenceUpdate(data);
       }
     });
 
-    socket.on('error', (error) => {
-      console.error('❌ Erro WebSocket:', error);
+    socket.on('error', (error) => { 
     });
 
-    // Conectar
     socket.connect();
   }, [user, currentCompany, events]);
 
@@ -175,7 +157,7 @@ export const useWebSocket = (events: WebSocketEvents) => {
     if (socketRef.current?.connected) {
       socketRef.current.emit('send_message', data);
     } else {
-      console.warn('⚠️ WebSocket não conectado, não é possível enviar mensagem');
+      console.warn('WebSocket não conectado, não é possível enviar mensagem');
     }
   }, []);
 
@@ -188,14 +170,12 @@ export const useWebSocket = (events: WebSocketEvents) => {
     }
   }, []);
 
-  // Conectar quando o usuário e empresa estiverem disponíveis
   useEffect(() => {
     if (user && currentCompany && !socketRef.current) {
       connect();
     }
   }, [user, currentCompany, connect]);
 
-  // Limpar ao desmontar
   useEffect(() => {
     return () => {
       disconnect();

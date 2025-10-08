@@ -24,7 +24,6 @@ export default function WorkspaceLoginPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !loading) {
-      console.log('🔍 WorkspaceLogin: Usuário já autenticado, redirecionando para dashboard');
       router.push('/');
     }
   }, [user, loading, router]);
@@ -41,11 +40,11 @@ export default function WorkspaceLoginPage() {
       if (result.error) {
         setError(result.error);
       } else {
-        console.log('✅ WorkspaceLogin: Login realizado com sucesso');
+        console.log('WorkspaceLogin: Login realizado com sucesso');
         // Redirect will be handled by the useEffect above
       }
     } catch (error) {
-      console.error('❌ WorkspaceLogin: Erro no login:', error);
+      console.error('WorkspaceLogin: Erro no login:', error);
       setError('Erro inesperado. Tente novamente.');
     } finally {
       setIsSubmitting(false);

@@ -260,12 +260,6 @@ export async function messageRoutes(fastify: FastifyInstance) {
         },
       });
 
-      console.log('📌 Mensagem fixada:', {
-        messageId: id,
-        isPinned: updatedMessage.isPinned,
-        pinnedBy: updatedMessage.pinnedBy,
-        pinnedAt: updatedMessage.pinnedAt
-      });
 
       return { success: true, message: updatedMessage };
     } catch (error) {

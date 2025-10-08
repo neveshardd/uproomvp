@@ -9,28 +9,21 @@ export class SessionSync {
    * Sincronizar sessão localmente apenas (sem cross-domain)
    */
   static syncSession(session: Session) {
-    console.log('🔄 SessionSync: Salvando sessão localmente')
-    
     // Salvar apenas na SessionManager (sem cross-domain sync)
     SessionManager.saveSession(session)
-    
-    console.log('✅ SessionSync: Sessão salva localmente')
   }
 
   /**
    * Verificar se há sessão local apenas
    */
   static checkSharedSession(): Session | null {
-    console.log('🔍 SessionSync: Verificando sessão local')
     
     // Verificar apenas SessionManager (sem cross-domain)
     const localSession = SessionManager.getSession()
     if (localSession) {
-      console.log('✅ SessionSync: Sessão local encontrada')
       return localSession
     }
 
-    console.log('❌ SessionSync: Nenhuma sessão local encontrada')
     return null
   }
 
@@ -49,7 +42,6 @@ export class SessionSync {
 
       if (response.ok) {
         const data = await response.json()
-        console.log('✅ SessionSync: Token válido, criando sessão')
         
         // Criar sessão
         const session: Session = {
@@ -64,13 +56,11 @@ export class SessionSync {
         
         return session
       } else {
-        console.log('❌ SessionSync: Token inválido')
         CrossDomainAuth.clearAuthToken()
         SessionManager.clearSession()
         return null
       }
     } catch (error) {
-      console.error('❌ SessionSync: Erro ao validar token:', error)
       return null
     }
   }
@@ -79,8 +69,6 @@ export class SessionSync {
    * Limpar sessão local apenas
    */
   static clearAllSessions() {
-    console.log('🧹 SessionSync: Limpando sessão local')
-    
     // Clear session manager
     SessionManager.clearSession()
     
@@ -92,7 +80,6 @@ export class SessionSync {
     // Clear sessionStorage
     sessionStorage.clear()
     
-    console.log('✅ SessionSync: Sessão local limpa')
   }
 
   /**
@@ -113,7 +100,6 @@ export class SessionSync {
    * Redirecionar para domínio principal para autenticação
    */
   static redirectToMainForAuth() {
-    console.log('🔄 SessionSync: Redirecionando para domínio principal para autenticação')
     CrossDomainAuth.redirectToMainDomainForAuth()
   }
 
@@ -121,7 +107,6 @@ export class SessionSync {
    * Lidar com redirecionamento após autenticação
    */
   static handleAuthRedirect() {
-    console.log('🔄 SessionSync: Lidando com redirecionamento após autenticação')
     CrossDomainAuth.handleAuthRedirect()
   }
 
@@ -137,7 +122,6 @@ export class SessionSync {
    */
   static async refreshSessionIfNeeded(): Promise<boolean> {
     if (this.isSessionExpiringSoon()) {
-      console.log('🔄 SessionSync: Sessão próxima do vencimento, tentando renovar...')
       
       const token = SessionManager.getToken()
       if (!token) return false
@@ -154,11 +138,10 @@ export class SessionSync {
         if (response.ok) {
           const data = await response.json()
           SessionManager.refreshSession(data.session.access_token)
-          console.log('✅ SessionSync: Sessão renovada com sucesso')
           return true
         }
       } catch (error) {
-        console.error('❌ SessionSync: Erro ao renovar sessão:', error)
+        console.error('Erro ao renovar sessão:', error)
       }
     }
 

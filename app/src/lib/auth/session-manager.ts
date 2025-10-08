@@ -29,16 +29,12 @@ export class SessionManager {
    */
   static saveSession(session: Session): void {
     try {
-      console.log('🔍 SessionManager: Salvando sessão para user:', session.user?.email)
       localStorage.setItem(this.SESSION_KEY, JSON.stringify(session))
       localStorage.setItem(this.TOKEN_KEY, session.access_token)
-      console.log('🔐 SessionManager: Sessão salva com sucesso')
       
-      // Verify it was saved
       const saved = localStorage.getItem(this.SESSION_KEY)
-      console.log('🔍 SessionManager: Verificação - sessão salva:', !!saved)
     } catch (error) {
-      console.error('❌ SessionManager: Erro ao salvar sessão:', error)
+      console.error('Erro ao salvar sessão:', error)
     }
   }
 
@@ -48,22 +44,18 @@ export class SessionManager {
   static getSession(): Session | null {
     try {
       const sessionData = localStorage.getItem(this.SESSION_KEY)
-      console.log('🔍 SessionManager: getSession - sessionData:', !!sessionData)
       if (!sessionData) return null
 
       const session: Session = JSON.parse(sessionData)
-      console.log('🔍 SessionManager: getSession - session válida:', !!session, 'user:', session.user?.email)
       
-      // Verificar se a sessão não expirou
       if (session.expires_at && Date.now() > session.expires_at) {
-        console.log('⚠️ SessionManager: Sessão expirada')
         this.clearSession()
         return null
       }
 
       return session
     } catch (error) {
-      console.error('❌ SessionManager: Erro ao obter sessão:', error)
+      console.error('Erro ao obter sessão:', error)
       this.clearSession()
       return null
     }
@@ -76,7 +68,7 @@ export class SessionManager {
     try {
       return localStorage.getItem(this.TOKEN_KEY)
     } catch (error) {
-      console.error('❌ SessionManager: Erro ao obter token:', error)
+      console.error('Erro ao obter token:', error)
       return null
     }
   }
@@ -104,9 +96,8 @@ export class SessionManager {
     try {
       localStorage.removeItem(this.SESSION_KEY)
       localStorage.removeItem(this.TOKEN_KEY)
-      console.log('🔐 SessionManager: Sessão limpa')
     } catch (error) {
-      console.error('❌ SessionManager: Erro ao limpar sessão:', error)
+      console.error('Erro ao limpar sessão:', error)
     }
   }
 
@@ -119,7 +110,7 @@ export class SessionManager {
       session.access_token = newToken
       session.expires_at = Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 dias
       this.saveSession(session)
-      console.log('🔄 SessionManager: Sessão renovada')
+      console.log('Sessão renovada')
     }
   }
 

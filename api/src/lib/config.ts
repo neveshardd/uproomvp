@@ -40,17 +40,17 @@ const parseEnv = () => {
         .filter(err => err.code !== 'invalid_type')
         .map(err => `${err.path.join('.')}: ${err.message}`);
       
-      let errorMessage = '❌ Erro na configuração das variáveis de ambiente:\n\n';
+      let errorMessage = 'Erro na configuração das variáveis de ambiente:\n\n';
       
       if (missingVars.length > 0) {
-        errorMessage += `🔴 Variáveis obrigatórias não definidas:\n${missingVars.map(v => `  - ${v}`).join('\n')}\n\n`;
+        errorMessage += `Variáveis obrigatórias não definidas:\n${missingVars.map(v => `  - ${v}`).join('\n')}\n\n`;
       }
       
       if (invalidVars.length > 0) {
-        errorMessage += `🟡 Variáveis com valores inválidos:\n${invalidVars.map(v => `  - ${v}`).join('\n')}\n\n`;
+        errorMessage += `Variáveis com valores inválidos:\n${invalidVars.map(v => `  - ${v}`).join('\n')}\n\n`;
       }
       
-      errorMessage += '💡 Configure essas variáveis no seu arquivo .env ou nas configurações do ambiente.';
+      errorMessage += 'Configure essas variáveis no seu arquivo .env ou nas configurações do ambiente.';
       
       throw new Error(errorMessage);
     }
@@ -62,11 +62,11 @@ export const config = parseEnv();
 
 // Log das configurações (sem dados sensíveis)
 if (config.NODE_ENV === 'development') {
-  console.log('🔧 Configuração do ambiente carregada:');
-  console.log(`  📍 NODE_ENV: ${config.NODE_ENV}`);
-  console.log(`  🚀 PORT: ${config.PORT}`);
-  console.log(`  🌐 FRONTEND_URL: ${config.FRONTEND_URL}`);
-  console.log(`  🔐 JWT_SECRET: ${config.JWT_SECRET ? '✅ Configurado' : '❌ Não configurado'}`);
-  console.log(`  🗄️ DATABASE_URL: ${config.DATABASE_URL ? '✅ Configurado' : '❌ Não configurado'}`);
-  console.log(`  🛡️ CORS_ORIGIN: ${config.CORS_ORIGIN ? '✅ Configurado' : '⚠️ Usando padrão'}`);
+  console.log('Configuração do ambiente carregada:');
+  console.log(`NODE_ENV: ${config.NODE_ENV}`);
+  console.log(`PORT: ${config.PORT}`);
+  console.log(`FRONTEND_URL: ${config.FRONTEND_URL}`);
+  console.log(`JWT_SECRET: ${config.JWT_SECRET ? 'Configurado' : 'Não configurado'}`);
+  console.log(`DATABASE_URL: ${config.DATABASE_URL ? 'Configurado' : 'Não configurado'}`);
+  console.log(`CORS_ORIGIN: ${config.CORS_ORIGIN ? 'Configurado' : 'Usando padrão'}`);
 }

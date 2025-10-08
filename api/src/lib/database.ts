@@ -33,9 +33,9 @@ if (config.NODE_ENV !== 'production') {
 export const disconnectDatabase = async () => {
   try {
     await prisma.$disconnect();
-    console.log('🔌 Conexão com banco de dados encerrada');
+    console.log('Conexão com banco de dados encerrada');
   } catch (error) {
-    console.error('❌ Erro ao desconectar do banco:', error);
+    console.error('Erro ao desconectar do banco:', error);
   }
 };
 
@@ -45,7 +45,7 @@ export const checkDatabaseHealth = async (): Promise<boolean> => {
     await prisma.$queryRaw`SELECT 1`;
     return true;
   } catch (error) {
-    console.error('❌ Erro na conexão com banco:', error);
+    console.error('Erro na conexão com banco:', error);
     return false;
   }
 };

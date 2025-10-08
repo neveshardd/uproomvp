@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
+import { useSubdomain } from '@/hooks/useSubdomain';
+import WorkspaceDashboard from '@/components/workspace/WorkspaceDashboard';
+import WorkspaceRouter from '@/components/workspace/WorkspaceRouter';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   MessageCircle, 
@@ -18,251 +20,20 @@ import {
   BarChart3,
   Settings,
   Zap,
-  Eye,
-  Building2,
-  Plus,
-  ArrowRight
+  Eye
 } from "lucide-react";
 import Navbar from "@/components/main/Navbar";
-import WorkspaceRouter from "@/components/workspace/WorkspaceRouter";
-import WorkspaceDashboard from "@/components/workspace/WorkspaceDashboard";
 import Link from "next/link";
 
 const LandingPage = () => {
-  const router = useRouter();
-  const { user, loading } = useAuth();
-  const { userCompanies, isLoading } = useCompany();
-  const [isCreatingCompany, setIsCreatingCompany] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'owner' | 'member'>('all');
-
-  // Debug logs
-  console.log('🔍 LandingPage: Renderizando com:', {
-    user: !!user,
-    loading,
-    userCompanies: userCompanies.length,
-    isLoading,
-    userCompaniesData: userCompanies
-  });
-
   const handleGetStarted = () => {
     // Navigation will be handled by Next.js Link
   };
 
-  const handleCreateCompany = () => {
-    setIsCreatingCompany(true);
-    router.push('/create-company');
-  };
-
-  const handleGoToWorkspace = (subdomain: string) => {
-    const workspaceUrl = process.env.NODE_ENV === 'development' 
-      ? `http://${subdomain}.localhost:3000`
-      : `https://${subdomain}.${process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'}`;
-    
-    console.log('🚀 LandingPage.handleGoToWorkspace:', {
-      subdomain,
-      workspaceUrl,
-      isDev: process.env.NODE_ENV === 'development'
-    });
-    window.location.href = workspaceUrl;
-  };
-
-  // Filtrar workspaces baseado no filtro selecionado
-  const filteredCompanies = userCompanies.filter(company => {
-    if (filter === 'all') return true;
-    if (filter === 'owner') return company.isOwner || company.userRole === 'OWNER';
-    if (filter === 'member') return !company.isOwner && company.userRole !== 'OWNER';
-    return true;
-  });
-
-  useEffect(() => {
-    if (!user && !loading) {
-      // User not authenticated - show landing page
-    }
-  }, [user, loading, router]);
-
-  // Loading states
-  if (loading || isLoading) {
-    return (
-      <WorkspaceRouter>
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-600 mx-auto mb-4"></div>
-            <p className="text-sm text-gray-600">Loading...</p>
-          </div>
-        </div>
-      </WorkspaceRouter>
-    );
-  }
-
-  // If user is authenticated, show dashboard instead of landing page
-  if (user) {
-    return (
-      <WorkspaceRouter>
-        <div className="min-h-screen bg-background">
-          <Navbar />
-          
-          <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center py-4">
-                <div className="flex items-center space-x-4">
-                  <div>
-                    <h1 className="text-xl font-semibold text-foreground">
-                      Your Workspaces
-                    </h1>
-                    <p className="text-sm text-muted-foreground">
-                      Choose a workspace to get started
-                    </p>
-                  </div>
-                </div>
-                <Button 
-                  onClick={handleCreateCompany} 
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={isCreatingCompany}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {isCreatingCompany ? 'Preparing...' : 'Create Workspace'}
-                </Button>
-              </div>
-            </div>
-          </header>
-
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {isCreatingCompany ? (
-              <div className="flex items-center justify-center min-h-[400px]">
-                <div className="text-center space-y-6">
-                  <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                  <h2 className="text-2xl font-bold text-foreground mb-4">Creating Your Workspace</h2>
-                  <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                    We're setting up your workspace and preparing everything for your team.
-                  </p>
-                  <Button 
-                    disabled
-                    className="bg-primary/50 text-primary-foreground cursor-not-allowed"
-                  >
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Creating Workspace...
-                  </Button>
-                </div>
-              </div>
-            ) : userCompanies.length === 0 ? (
-              <div className="text-center">
-                <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Building2 className="h-8 w-8 text-primary" />
-                </div>
-                <h2 className="text-2xl font-bold text-foreground mb-4">No Workspaces Yet</h2>
-                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Create your first workspace to start collaborating with your team and organizing your projects.
-                </p>
-                <Button 
-                  onClick={handleCreateCompany}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                  disabled={isCreatingCompany}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {isCreatingCompany ? 'Preparing...' : 'Create Your First Workspace'}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                <div className="flex justify-between items-center w-full">
-                  <h2 className="text-2xl font-bold text-foreground text-left">Your Workspaces</h2>
-                </div>
-
-                {/* Filtros */}
-                <div className="flex gap-2">
-                  <Button
-                    variant={filter === 'all' ? 'default' : 'outline'}
-                    onClick={() => setFilter('all')}
-                    size="sm"
-                  >
-                    Todos ({userCompanies.length})
-                  </Button>
-                  <Button
-                    variant={filter === 'owner' ? 'default' : 'outline'}
-                    onClick={() => setFilter('owner')}
-                    size="sm"
-                  >
-                    Dono ({userCompanies.filter(c => c.isOwner || c.userRole === 'OWNER').length})
-                  </Button>
-                  <Button
-                    variant={filter === 'member' ? 'default' : 'outline'}
-                    onClick={() => setFilter('member')}
-                    size="sm"
-                  >
-                    Membro ({userCompanies.filter(c => !c.isOwner && c.userRole !== 'OWNER').length})
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredCompanies.map((company) => (
-                    <Card key={company.id} className="bg-card/50 border-border/40 hover:bg-card/70 transition-colors group">
-                      <CardHeader className="text-center">
-                        <div className="mx-auto mb-4">
-                          {company.logo ? (
-                            <img 
-                              src={company.logo} 
-                              alt={`${company.name} logo`}
-                              className="h-16 w-16 rounded-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
-                              <Building2 className="h-8 w-8 text-primary" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center justify-center gap-2 mb-2">
-                          <CardTitle className="text-lg text-foreground">{company.name}</CardTitle>
-                          {company.isOwner || company.userRole === 'OWNER' ? (
-                            <Badge className="bg-purple-600 text-white">
-                              Owner
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">
-                              Member
-                            </Badge>
-                          )}
-                        </div>
-                        <CardDescription className="text-muted-foreground">
-                          {company.description || `${company.subdomain}.${process.env.NEXT_PUBLIC_WORKSPACE_DOMAIN || 'uproom.com'}`}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div className="flex items-center justify-center space-x-4 text-sm text-muted-foreground">
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" />
-                            0 members
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Button 
-                            onClick={() => handleGoToWorkspace(company.subdomain)}
-                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground group-hover:bg-primary/80"
-                          >
-                            <ArrowRight className="h-4 w-4 mr-2" />
-                            Go to Workspace
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-          </main>
-        </div>
-      </WorkspaceRouter>
-    );
-  }
-
   return (
-    <WorkspaceRouter>
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <Navbar />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <Navbar />
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -536,9 +307,116 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-      </div>
+    </div>
+  );
+};
+
+const WorkspacePage = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { currentCompany, loadWorkspaceBySubdomain, isLoading: companyLoading } = useCompany();
+  const { subdomain } = useSubdomain();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const initializeWorkspace = async () => {
+      if (subdomain && user && !authLoading && !companyLoading) {
+        try {
+          // Carregar dados da workspace baseado no subdomain
+          const result = await loadWorkspaceBySubdomain(subdomain);
+          if (result.success) {
+            setIsLoading(false);
+          } else {
+            console.error('Erro ao carregar workspace:', result.error);
+            setIsLoading(false);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar workspace:', error);
+          setIsLoading(false);
+        }
+      } else if (!authLoading && !companyLoading && !user) {
+        // Se não há usuário autenticado, redirecionar para login
+        window.location.href = '/login';
+      }
+    };
+
+    initializeWorkspace();
+  }, [subdomain, user, authLoading, companyLoading, loadWorkspaceBySubdomain]);
+
+  // Loading state
+  if (authLoading || companyLoading || isLoading) {
+    return (
+      <WorkspaceRouter>
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-600 mx-auto mb-4"></div>
+            <p className="text-sm text-gray-600">Carregando workspace...</p>
+          </div>
+        </div>
+      </WorkspaceRouter>
+    );
+  }
+
+  // Se não há usuário autenticado
+  if (!user) {
+    return (
+      <WorkspaceRouter>
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-foreground mb-4">Acesso Negado</h2>
+            <p className="text-muted-foreground mb-8">
+              Você precisa estar logado para acessar esta workspace.
+            </p>
+            <a 
+              href="/login" 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg inline-block"
+            >
+              Fazer Login
+            </a>
+          </div>
+        </div>
+      </WorkspaceRouter>
+    );
+  }
+
+  // Se não há workspace carregada
+  if (!currentCompany) {
+    return (
+      <WorkspaceRouter>
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-foreground mb-4">Workspace Não Encontrada</h2>
+            <p className="text-muted-foreground mb-8">
+              A workspace "{subdomain}" não foi encontrada ou você não tem acesso a ela.
+            </p>
+            <a 
+              href="/workspaces" 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg inline-block"
+            >
+              Ver Minhas Workspaces
+            </a>
+          </div>
+        </div>
+      </WorkspaceRouter>
+    );
+  }
+
+  return (
+    <WorkspaceRouter>
+      <WorkspaceDashboard company={currentCompany} />
     </WorkspaceRouter>
   );
 };
 
-export default LandingPage;
+const MainPage = () => {
+  const { subdomain } = useSubdomain();
+  
+  // Se há subdomain, mostrar workspace
+  if (subdomain) {
+    return <WorkspacePage />;
+  }
+  
+  // Se não há subdomain, mostrar landing page
+  return <LandingPage />;
+};
+
+export default MainPage;

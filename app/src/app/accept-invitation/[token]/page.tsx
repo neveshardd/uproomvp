@@ -136,39 +136,6 @@ export default function AcceptInvitationPage() {
     }
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'OWNER':
-        return <Building2 className="w-4 h-4" />;
-      case 'ADMIN':
-        return <Shield className="w-4 h-4" />;
-      default:
-        return <User className="w-4 h-4" />;
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'OWNER':
-        return 'bg-purple-600';
-      case 'ADMIN':
-        return 'bg-blue-600';
-      default:
-        return 'bg-gray-600';
-    }
-  };
-
-  const getRoleLabel = (role: string) => {
-    switch (role) {
-      case 'OWNER':
-        return 'Owner';
-      case 'ADMIN':
-        return 'Admin';
-      default:
-        return 'Member';
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -232,14 +199,6 @@ export default function AcceptInvitationPage() {
                 {invitation.company.description}
               </p>
             )}
-
-            {/* Role */}
-            <div className="flex items-center space-x-3 ml-8">
-              {getRoleIcon(invitation.role)}
-              <Badge className={`${getRoleColor(invitation.role)} text-white`}>
-                {getRoleLabel(invitation.role)}
-              </Badge>
-            </div>
 
             {/* Convite por */}
             <div className="flex items-center space-x-3 ml-8">

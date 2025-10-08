@@ -54,41 +54,46 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   
-  console.log('🔍 AuthProvider: Renderizando com user:', !!user, 'loading:', loading);
-
   useEffect(() => {
     // Get initial session - independent authentication per domain
     const getInitialSession = async () => {
       try {
-        console.log('🔍 AuthContext: Inicializando sessão independente...')
-        
         // Small delay to ensure localStorage is ready
         await new Promise(resolve => setTimeout(resolve, 50))
         
         // Check for local session first
         const sharedSession = SessionSync.checkSharedSession()
-        console.log('🔍 AuthContext: sharedSession encontrada:', !!sharedSession)
         if (sharedSession) {
-          console.log('✅ AuthContext: Sessão local encontrada', sharedSession.user?.email)
-          setUser(sharedSession.user)
-          setProfile(sharedSession.user)
+          const userWithDefaults = {
+            ...sharedSession.user,
+            fullName: sharedSession.user.fullName || null,
+            avatar: sharedSession.user.avatar || null,
+            lastLoginAt: null,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+          setUser(userWithDefaults)
+          setProfile(userWithDefaults)
           setSession(sharedSession)
           setLoading(false)
           return
         }
 
         // No local session found - check for cross-domain session
-        console.log('🔍 AuthContext: Nenhuma sessão local encontrada, verificando cross-domain...')
-        
-        // Try to get token from cross-domain auth
         const crossDomainToken = CrossDomainAuth.getAuthToken()
         if (crossDomainToken) {
-          console.log('🔍 AuthContext: Token cross-domain encontrado, validando...')
           const validatedSession = await SessionSync.validateToken(crossDomainToken)
           if (validatedSession) {
-            console.log('✅ AuthContext: Sessão cross-domain válida', validatedSession.user?.email)
-            setUser(validatedSession.user)
-            setProfile(validatedSession.user)
+            const userWithDefaults = {
+              ...validatedSession.user,
+              fullName: validatedSession.user.fullName || null,
+              avatar: validatedSession.user.avatar || null,
+              lastLoginAt: null,
+              createdAt: new Date(),
+              updatedAt: new Date()
+            }
+            setUser(userWithDefaults)
+            setProfile(userWithDefaults)
             setSession(validatedSession)
             setLoading(false)
             return
@@ -96,20 +101,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         // No valid session found anywhere
-        console.log('🔍 AuthContext: Nenhuma sessão válida encontrada')
-        
-        // Check if we're on a subdomain and not on auth pages
         if (SessionSync.isOnSubdomain()) {
           const currentPath = window.location.pathname
-          if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
-            console.log('🔍 AuthContext: Em subdomínio sem sessão, redirecionando para domínio principal para autenticação')
+          if (!currentPath.includes('/login') && !currentPath.includes('/register') && currentPath !== '/' && currentPath !== '') {
             SessionSync.redirectToMainForAuth()
             return
           }
         }
-        
       } catch (error) {
-        console.error('❌ AuthContext: Erro ao inicializar sessão:', error)
+        console.error('Erro ao inicializar sessão:', error)
         SessionSync.clearAllSessions()
       } finally {
         setLoading(false)
@@ -187,11 +187,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signOut = async () => {
     try {
-      console.log('🔍 AuthContext: Iniciando logout...')
-      
       const token = CrossDomainAuth.getAuthToken()
       if (token) {
-        console.log('🔍 AuthContext: Enviando requisição de logout para o servidor...')
         await fetch(`${API_URL}/auth/signout`, {
           method: 'POST',
           headers: {
@@ -201,14 +198,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         })
       }
     } catch (error) {
-      console.error('❌ AuthContext: Erro no logout:', error)
+      console.error('Erro no logout:', error)
     } finally {
-      console.log('🧹 AuthContext: Limpando sessões...')
       SessionSync.clearAllSessions()
       setUser(null)
-      setSession(null)
       setProfile(null)
-      console.log('✅ AuthContext: Logout concluído')
+      setSession(null)
     }
   }
 

@@ -3,9 +3,6 @@
 
 export class CrossDomainAuth {
   private static readonly AUTH_COOKIE_NAME = 'auth_token'
-  private static readonly AUTH_COOKIE_DOMAIN = process.env.NODE_ENV === 'production' 
-    ? process.env.NEXT_PUBLIC_DOMAIN || 'uproom.com'
-    : 'localhost'
 
   /**
    * Set authentication token in a cookie that can be shared across subdomains
@@ -21,21 +18,12 @@ export class CrossDomainAuth {
     // Get the base domain for cookie sharing
     const baseDomain = this.getBaseDomainForCookie()
     
-    console.log('🔍 CrossDomainAuth: setAuthToken', {
-      token: token ? 'exists' : 'null',
-      baseDomain,
-      protocol: window.location.protocol,
-      isSecure: window.location.protocol === 'https:'
-    })
-    
     // For localhost, don't set domain to allow subdomain sharing
     if (baseDomain.includes('localhost')) {
       document.cookie = `${this.AUTH_COOKIE_NAME}=${token}; expires=${expires.toUTCString()}; path=/; samesite=lax`
     } else {
       document.cookie = `${this.AUTH_COOKIE_NAME}=${token}; expires=${expires.toUTCString()}; domain=${baseDomain}; path=/; secure=${window.location.protocol === 'https:'}; samesite=lax`
     }
-    
-    console.log('🔍 CrossDomainAuth: Cookie set:', document.cookie)
   }
 
   /**
@@ -44,7 +32,6 @@ export class CrossDomainAuth {
   static getAuthToken(): string | null {
     // First try localStorage
     const localToken = localStorage.getItem('auth_token')
-    console.log('🔍 CrossDomainAuth: localStorage token:', localToken ? 'exists' : 'null')
     
     if (localToken) {
       return localToken
@@ -52,20 +39,16 @@ export class CrossDomainAuth {
 
     // If not in localStorage, try to get from cookie
     const cookies = document.cookie.split(';')
-    console.log('🔍 CrossDomainAuth: All cookies:', document.cookie)
-    console.log('🔍 CrossDomainAuth: Looking for cookie:', this.AUTH_COOKIE_NAME)
     
     for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=')
       if (name === this.AUTH_COOKIE_NAME) {
-        console.log('🔍 CrossDomainAuth: Found cookie token:', value ? 'exists' : 'null')
         // Set in localStorage for future use
         localStorage.setItem('auth_token', value)
         return value
       }
     }
 
-    console.log('🔍 CrossDomainAuth: No token found')
     return null
   }
 
@@ -74,16 +57,10 @@ export class CrossDomainAuth {
    */
   static getBaseDomainForCookie(): string {
     const hostname = window.location.hostname
-    console.log('🔍 CrossDomainAuth: getBaseDomainForCookie hostname:', hostname)
     
     // For localhost development - use .localhost for subdomain sharing
     if (hostname.includes('localhost')) {
       return '.localhost'
-    }
-    
-    // For Vercel deployment
-    if (hostname.includes('vercel.app')) {
-      return '.vercel.app'
     }
     
     // For production domains - use environment variables
@@ -115,18 +92,15 @@ export class CrossDomainAuth {
    * Sync logout across all domains
    */
   static syncLogout() {
-    console.log('🔍 CrossDomainAuth: Iniciando sync logout...')
     
     // Clear local storage and cookies
     this.clearAuthToken()
-    console.log('🧹 CrossDomainAuth: Tokens locais limpos')
     
     // If we're on a subdomain, also clear the main domain
     if (this.isSubdomain()) {
       const mainDomain = this.getMainDomain()
       const protocol = window.location.protocol
       
-      console.log('🔍 CrossDomainAuth: Em subdomínio, limpando domínio principal:', mainDomain)
       
       // Use a hidden iframe to clear the main domain's auth
       const iframe = document.createElement('iframe')
@@ -139,10 +113,9 @@ export class CrossDomainAuth {
         if (iframe.parentNode) {
           iframe.parentNode.removeChild(iframe)
         }
-        console.log('✅ CrossDomainAuth: Sync logout concluído')
       }, 1000)
     } else {
-      console.log('✅ CrossDomainAuth: Sync logout concluído (domínio principal)')
+      console.log('Sync logout concluído (domínio principal)')
     }
   }
 
@@ -165,7 +138,6 @@ export class CrossDomainAuth {
    */
   static isSubdomain(): boolean {
     const hostname = window.location.hostname
-    console.log('🔍 CrossDomainAuth: isSubdomain check:', { hostname, includesDot: hostname.includes('.'), includesLocalhost: hostname.includes('localhost') })
     
     // For localhost development, check if it's a subdomain like kayda.localhost
     if (hostname.includes('localhost')) {
@@ -181,11 +153,6 @@ export class CrossDomainAuth {
    */
   static getMainDomain(): string {
     const hostname = window.location.hostname
-    
-    // For Vercel deployment
-    if (hostname.includes('vercel.app')) {
-      return process.env.NEXT_PUBLIC_VERCEL_DOMAIN || 'uproomvp.vercel.app'
-    }
     
     // For localhost development
     if (hostname.includes('localhost')) {
@@ -287,7 +254,7 @@ export class CrossDomainAuth {
       }
     } else {
       // No returnUrl - stay on current page (don't redirect automatically)
-      console.log('🔍 CrossDomainAuth: No returnUrl, staying on current page')
+      console.log('No returnUrl, staying on current page')
     }
   }
 }

@@ -25,7 +25,6 @@ export const useSubdomain = () => {
         const subdomain = getCurrentSubdomain()
         
         if (!subdomain) {
-          // No subdomain detected - this is the main domain
           setState({
             subdomain: null,
             company: null,
@@ -36,7 +35,6 @@ export const useSubdomain = () => {
           return
         }
 
-        // Validate subdomain format
         const formatValidation = validateFormat(subdomain)
         if (!formatValidation.isValid) {
           setState({
@@ -49,7 +47,6 @@ export const useSubdomain = () => {
           return
         }
 
-        // Load company data for this subdomain
         const { company, error } = await getCompanyBySubdomain(subdomain)
 
         if (error) {
@@ -63,7 +60,6 @@ export const useSubdomain = () => {
           return
         }
 
-        // Successfully loaded company
         setState({
           subdomain,
           company,
@@ -73,11 +69,11 @@ export const useSubdomain = () => {
         })
 
       } catch (error) {
-        console.error('Error detecting subdomain:', error)
+        console.error('Erro inesperado ao detectar subdomínio:', error)
         setState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'Failed to detect workspace'
+          error: 'Falha ao detectar workspace'
         }))
       }
     }
@@ -94,21 +90,12 @@ export const useSubdomain = () => {
     const protocol = window.location.protocol
     const hostname = window.location.hostname
     
-    // For Vercel deployment
-    if (hostname.includes('vercel.app')) {
-      const vercelDomain = process.env.NEXT_PUBLIC_VERCEL_DOMAIN || 'uproomvp.vercel.app'
-      window.location.href = `${protocol}//${vercelDomain}`
-      return
-    }
-    
-    // For localhost development
     if (hostname.includes('localhost')) {
       const devDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000'
       window.location.href = `${protocol}//${devDomain}`
       return
     }
     
-    // For production with custom domain
     const domain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'starvibe.space'
     window.location.href = `${protocol}//${domain}`
   }
@@ -119,20 +106,17 @@ export const useSubdomain = () => {
     redirectToMainDomain,
     refresh: () => {
       setState(prev => ({ ...prev, isLoading: true }))
-      // Trigger re-detection
       window.location.reload()
     }
   }
 }
 
-// Helper functions
 const getCurrentSubdomain = (): string | null => {
   if (typeof window === 'undefined') return null
   
   const hostname = window.location.hostname
   const parts = hostname.split('.')
   
-  // For localhost development
   if (hostname.includes('localhost')) {
     if (parts.length >= 2 && parts[1] === 'localhost') {
       const subdomain = parts[0]
@@ -143,7 +127,6 @@ const getCurrentSubdomain = (): string | null => {
     return null
   }
   
-  // For production
   if (parts.length >= 3) {
     const subdomain = parts[0]
     if (subdomain !== 'www') {
@@ -155,7 +138,6 @@ const getCurrentSubdomain = (): string | null => {
 }
 
 const validateFormat = (subdomain: string) => {
-  // Basic validation - can be extended
   if (!subdomain || subdomain.length < 2) {
     return { isValid: false, message: 'Subdomain too short' }
   }
@@ -195,12 +177,6 @@ const getWorkspaceUrl = (subdomain: string) => {
   if (hostname.includes('localhost')) {
     const devDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000'
     return `${protocol}//${subdomain}.${devDomain}`
-  }
-  
-  // For Vercel deployment
-  if (hostname.includes('vercel.app')) {
-    const vercelDomain = process.env.NEXT_PUBLIC_VERCEL_DOMAIN || 'uproomvp.vercel.app'
-    return `${protocol}//${subdomain}.${vercelDomain}`
   }
   
   // For production - use workspace domain from environment

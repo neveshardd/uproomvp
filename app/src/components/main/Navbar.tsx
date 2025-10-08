@@ -19,7 +19,6 @@ const Navbar = () => {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    console.log('🔍 Navbar: Iniciando logout...');
     await signOut();
     
     // Check if we're on a subdomain (workspace)
@@ -29,10 +28,8 @@ const Navbar = () => {
                        window.location.hostname.includes('.');
     
     if (isSubdomain) {
-      console.log('🔍 Navbar: Em workspace, redirecionando para login da workspace');
       router.push('/login');
     } else {
-      console.log('🔍 Navbar: Em domínio principal, redirecionando para home');
       router.push('/');
     }
   };
@@ -83,7 +80,7 @@ const Navbar = () => {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push('/')}>
+                  <DropdownMenuItem onClick={() => router.push('/workspaces')}>
                     <Building2 className="mr-2 h-4 w-4" />
                     My Workspaces
                   </DropdownMenuItem>

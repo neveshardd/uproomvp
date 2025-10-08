@@ -20,19 +20,13 @@ export const authenticateUser = async (
   reply: FastifyReply
 ) => {
   try {
-    console.log('🔍 Auth: Verificando autenticação para:', request.url);
-    console.log('🔍 Auth: Headers:', request.headers.authorization ? 'Authorization presente' : 'Sem Authorization');
-    
     const { authorization } = authHeaderSchema.parse(request.headers);
     const token = authorization.replace('Bearer ', '');
 
-    console.log('🔍 Auth: Token recebido:', token.substring(0, 20) + '...');
-    
     // Verificar token JWT
     const decoded = AuthService.verifyToken(token);
     
     if (!decoded) {
-      console.log('Token inválido ou expirado');
       return reply.status(401).send({ error: 'Token inválido' });
     }
 
@@ -42,11 +36,9 @@ export const authenticateUser = async (
     });
 
     if (!dbUser) {
-      console.log('Usuário não encontrado no banco local:', decoded.userId);
       return reply.status(404).send({ error: 'Usuário não encontrado' });
     }
     
-    console.log('Usuário autenticado:', { id: dbUser.id, email: dbUser.email });
     
     (request as AuthenticatedRequest).user = {
       id: dbUser.id,
@@ -54,12 +46,7 @@ export const authenticateUser = async (
     };
     
   } catch (error) {
-    console.error('❌ Auth: Erro de autenticação:', error);
-    console.error('❌ Auth: URL:', request.url);
-    console.error('❌ Auth: Headers:', request.headers);
-    
-    if (error instanceof z.ZodError) {
-      console.error('❌ Auth: Erro de validação do header:', error.errors);
+      if (error instanceof z.ZodError) {
       return reply.status(401).send({ error: 'Header de autorização inválido' });
     }
     

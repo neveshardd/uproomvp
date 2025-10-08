@@ -30,9 +30,9 @@ import {
   Settings, 
   UserPlus, 
   LogOut, 
-  Building2,
   Mail,
-  User
+  User,
+  Building2
 } from 'lucide-react';
 
 interface WorkspaceHeaderProps {
@@ -72,7 +72,7 @@ export default function WorkspaceHeader({ company }: WorkspaceHeaderProps) {
 
     setIsInviting(true);
     try {
-      const result = await inviteUser(inviteEmail, inviteRole);
+      const result = await inviteUser(inviteRole);
       
       if (result.success) {
         toast({
@@ -97,10 +97,6 @@ export default function WorkspaceHeader({ company }: WorkspaceHeaderProps) {
     } finally {
       setIsInviting(false);
     }
-  };
-
-  const getCompanyInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   const getUserInitials = (name: string) => {
@@ -142,7 +138,7 @@ export default function WorkspaceHeader({ company }: WorkspaceHeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center space-x-2 h-auto p-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.avatar} />
+                    <AvatarImage src={user?.avatar || undefined} />
                     <AvatarFallback>
                       {getUserInitials(user?.fullName || user?.email || 'User')}
                     </AvatarFallback>

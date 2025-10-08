@@ -6,7 +6,6 @@ import { SessionSync } from '@/lib/auth/session-sync';
 export default function AuthClearPage() {
   useEffect(() => {
     // Clear all sessions when this page is accessed
-    console.log('🧹 AuthClear: Limpando todas as sessões...');
     SessionSync.clearAllSessions();
     
     // Redirect to main domain after clearing

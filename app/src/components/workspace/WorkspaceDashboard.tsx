@@ -29,7 +29,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import WorkspaceHeader from './WorkspaceHeader';
 import StatusSelector from './StatusSelector';
 import MemberList from './MemberList';
 import GroupParticipants from './GroupParticipants';
@@ -50,8 +49,6 @@ import {
   Settings,
   UserPlus,
   LogOut,
-  Building2,
-  Mail,
   User,
   Archive,
   Trash2
@@ -114,8 +111,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
     onUserStatus: () => {},
     onNewConversation: () => {},
     onPresenceUpdate: (data) => {
-      console.log('📢 Presença atualizada via WebSocket:', data);
-      
       // Atualizar o membro específico na lista
       setTeamMembers(prevMembers => {
         return prevMembers.map(member => {
@@ -141,7 +136,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
   // Carregar dados da workspace quando o componente montar
   useEffect(() => {
     if (company && user && loadWorkspaceData) {
-      console.log('🔍 WorkspaceDashboard: Loading workspace data for company:', company.id);
       loadWorkspaceData(company);
     }
   }, [company?.id, user?.id, loadWorkspaceData]);
@@ -187,7 +181,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
       });
 
       const data = await response.json();
-      console.log('✅ Membros corrigidos:', data);
       
       toast({
         title: 'Sucesso!',
@@ -199,7 +192,7 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
         await loadWorkspaceData(company);
       }
     } catch (error) {
-      console.error('❌ Erro ao corrigir membros:', error);
+      console.error('Erro ao corrigir membros:', error);
       toast({
         title: 'Erro',
         description: 'Falha ao corrigir membros',
@@ -293,15 +286,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
     loadTeamMembers();
   };
 
-  // Debug logs para permissões
-  useEffect(() => {
-    console.log('🔍 WorkspaceDashboard: userRole:', userRole);
-    console.log('🔍 WorkspaceDashboard: canInviteUsers:', canInviteUsers);
-    console.log('🔍 WorkspaceDashboard: canAccessSettings:', canAccessSettings);
-    console.log('🔍 WorkspaceDashboard: currentCompany:', currentCompany?.name);
-    console.log('🔍 WorkspaceDashboard: company prop:', company?.name);
-  }, [userRole, canInviteUsers, canAccessSettings, currentCompany, company]);
-
   // Chat state
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [message, setMessage] = useState('');
@@ -359,15 +343,8 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
   const handleGenerateInviteLink = async () => {
     setIsGenerating(true);
     try {
-      console.log('🔍 Gerando link de convite:', {
-        role: inviteRole,
-        company: currentCompany?.name,
-        userRole
-      });
       
       const result = await inviteUser(inviteRole);
-      
-      console.log('🔍 Resultado do convite:', result);
       
       if (result.success) {
         const invitationUrl = result.data?.invitationUrl || result.data?.invitePath;
@@ -384,7 +361,7 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
                 duration: 5000,
               });
             }).catch(err => {
-              console.log('❌ Erro ao copiar link:', err);
+              console.log('Erro ao copiar link:', err);
               toast({
                 title: 'Link Gerado!',
                 description: 'Link de convite gerado com sucesso',
@@ -407,7 +384,7 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
         });
       }
     } catch (error) {
-      console.error('❌ Erro inesperado ao gerar convite:', error);
+      console.error('Erro inesperado ao gerar convite:', error);
       toast({
         title: 'Erro',
         description: 'Falha ao gerar link de convite',
@@ -536,12 +513,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
     if (!selectedChat) return [];
     const messages = getCurrentMessages();
     const pinnedMessages = messages.filter(msg => msg.isPinned);
-    console.log('🔍 Debug - Mensagens fixadas:', {
-      totalMessages: messages.length,
-      pinnedMessages: pinnedMessages.length,
-      selectedChat,
-      messages: messages.map(m => ({ id: m.id, isPinned: m.isPinned, content: m.content.substring(0, 20) }))
-    });
     return pinnedMessages;
   };
 
@@ -590,7 +561,6 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
   const getCurrentChatInfo = () => {
     if (!selectedChat) return null;
     const conversation = chatState.conversations.find(conv => conv.id === selectedChat);
-    console.log('🔍 getCurrentChatInfo:', { selectedChat, conversation, totalConversations: chatState.conversations.length });
     return conversation;
   };
 

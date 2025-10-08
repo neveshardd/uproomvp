@@ -2,31 +2,27 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { SettingsProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import WorkspaceHeader from '@/components/workspace/WorkspaceHeader';
 import {
   ArrowLeft,
   Building2,
   Users,
-  Settings as SettingsIcon,
   Globe,
-  Mail,
   Shield,
   Trash2,
   Save,
   Upload,
   X
 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 export default function WorkspaceSettings() {
   return (

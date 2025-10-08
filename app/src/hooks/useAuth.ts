@@ -19,7 +19,6 @@ export const useAuth = () => {
           return;
         }
 
-        // Verificar se o token é válido
         const response = await fetch(`${API_URL}/auth/session`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -29,14 +28,13 @@ export const useAuth = () => {
         if (response.ok) {
           setIsAuthenticated(true);
         } else if (response.status === 401) {
-          // Token expirado ou inválido
           localStorage.removeItem('auth_token');
           setIsAuthenticated(false);
         } else {
           setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Erro ao verificar autenticação:', error);
+        console.error('Erro inesperado ao verificar autenticação:', error);
         setIsAuthenticated(false);
       } finally {
         setIsLoading(false);

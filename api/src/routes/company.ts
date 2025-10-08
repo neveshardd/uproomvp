@@ -21,8 +21,6 @@ const updateCompanySchema = z.object({
 export async function companyRoutes(fastify: FastifyInstance) {
   // Endpoint de teste para debug
   fastify.post('/test', async (request: FastifyRequest, reply: FastifyReply) => {
-    console.log('Test endpoint - Request body:', request.body);
-    console.log('Test endpoint - Request headers:', request.headers);
     return { message: 'Test successful', body: request.body };
   });
 
@@ -32,7 +30,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request as AuthenticatedRequest).user.id;
-      console.log('🔧 Fixing members for user:', userId);
 
       // Buscar todas as empresas onde o usuário é owner mas não é membro
       const companies = await prisma.company.findMany({
@@ -61,7 +58,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
             },
           });
           
-          console.log('✅ Fixed company:', company.name, 'member:', member.id);
           fixed.push({
             companyId: company.id,
             companyName: company.name,
@@ -75,7 +71,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
         fixed,
       };
     } catch (error) {
-      console.error('Error fixing members:', error);
       return reply.status(500).send({ error: 'Failed to fix members' });
     }
   });
@@ -144,26 +139,15 @@ export async function companyRoutes(fastify: FastifyInstance) {
     }
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      console.log('Request body:', request.body);
-      console.log('Request headers:', request.headers);
       
       // Validar cada campo individualmente para debug
       const body = request.body as any;
-      console.log('Raw body fields:', {
-        name: body.name,
-        subdomain: body.subdomain,
-        description: body.description,
-        nameType: typeof body.name,
-        subdomainType: typeof body.subdomain,
-        descriptionType: typeof body.description
-      });
       
       // Validar schema com tratamento de erro detalhado
       let validatedData;
       try {
         validatedData = createCompanySchema.parse(request.body);
       } catch (validationError: any) {
-        console.error('Validation error:', validationError);
         return reply.status(400).send({
           error: 'Validation failed',
           details: validationError.errors || validationError.message
@@ -172,7 +156,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
       
       const { name, subdomain, description } = validatedData;
       const userId = (request as AuthenticatedRequest).user.id;
-      console.log('Parsed data:', { name, subdomain, description, userId });
 
       // Verificar se o subdomínio já existe
       const existingCompany = await prisma.company.findUnique({
@@ -183,8 +166,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'Subdomínio já está em uso' });
       }
 
-      console.log('🔍 Creating company:', { name, subdomain, userId });
-
       const company = await prisma.company.create({
         data: {
           name,
@@ -193,8 +174,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
           ownerId: userId,
         },
       });
-
-      console.log('✅ Company created:', company.id);
 
       // Adicionar o criador como membro com role OWNER
       const member = await prisma.companyMember.create({
@@ -205,11 +184,8 @@ export async function companyRoutes(fastify: FastifyInstance) {
         },
       });
 
-      console.log('✅ Company member created:', { memberId: member.id, userId, companyId: company.id, role: member.role });
-
       return { company };
     } catch (error) {
-      console.error('Validation error:', error);
       return reply.status(400).send({ error: 'Dados inválidos', details: (error as Error).message });
     }
   });
@@ -240,7 +216,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
 
       return { companies: companies || [] };
     } catch (error) {
-      console.error('Error getting companies:', error);
       return reply.status(500).send({ error: 'Erro interno', details: (error as Error).message });
     }
   });
@@ -252,12 +227,8 @@ export async function companyRoutes(fastify: FastifyInstance) {
     try {
       const { userId } = request.params as { userId: string };
       
-      console.log('🔍 Company API: Buscando empresas para usuário:', userId);
-      console.log('🔍 Company API: Usuário autenticado:', (request as AuthenticatedRequest).user.id);
-      
       // Verificar se o usuário está tentando acessar suas próprias empresas
       if ((request as AuthenticatedRequest).user.id !== userId) {
-        console.log('❌ Company API: Usuário tentando acessar empresas de outro usuário');
         return reply.status(403).send({ error: 'Acesso negado' });
       }
 
@@ -288,18 +259,8 @@ export async function companyRoutes(fastify: FastifyInstance) {
         isOwner: company.ownerId === userId,
       }));
 
-      console.log('🔍 Company API: Empresas encontradas:', companiesWithRole.length);
-      console.log('🔍 Company API: Empresas:', companiesWithRole.map(c => ({ 
-        id: c.id, 
-        name: c.name, 
-        subdomain: c.subdomain, 
-        userRole: c.userRole,
-        isOwner: c.isOwner 
-      })));
-
       return { companies: companiesWithRole || [] };
     } catch (error) {
-      console.error('Error getting user companies:', error);
       return reply.status(500).send({ error: 'Erro interno', details: (error as Error).message });
     }
   });
@@ -424,7 +385,126 @@ export async function companyRoutes(fastify: FastifyInstance) {
 
       return { available: !existingCompany };
     } catch (error) {
-      console.error('Error checking subdomain:', error);
+      return reply.status(500).send({ error: 'Erro interno', details: (error as Error).message });
+    }
+  });
+
+  // Buscar empresa por subdomínio (com verificação de acesso)
+  fastify.get('/by-subdomain/:subdomain', {
+    preHandler: requireAuth,
+    schema: {
+      tags: ['companies'],
+      summary: 'Buscar empresa por subdomínio com verificação de acesso',
+      description: 'Busca uma empresa pelo seu subdomínio e verifica se o usuário tem acesso',
+      params: {
+        type: 'object',
+        required: ['subdomain'],
+        properties: {
+          subdomain: {
+            type: 'string',
+            description: 'Subdomínio da empresa',
+          }
+        }
+      },
+      response: {
+        200: {
+          description: 'Empresa encontrada',
+          type: 'object',
+          properties: {
+            company: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                name: { type: 'string' },
+                subdomain: { type: 'string' },
+                description: { type: 'string' },
+                ownerId: { type: 'string' },
+                createdAt: { type: 'string', format: 'date-time' },
+                members: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      role: { type: 'string' },
+                      user: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          email: { type: 'string' },
+                          name: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        403: {
+          description: 'Acesso negado',
+          type: 'object',
+          properties: {
+            error: { type: 'string' }
+          }
+        },
+        404: {
+          description: 'Empresa não encontrada',
+          type: 'object',
+          properties: {
+            error: { type: 'string' }
+          }
+        },
+        500: {
+          description: 'Erro interno do servidor',
+          type: 'object',
+          properties: {
+            error: { type: 'string' },
+            details: { type: 'string' }
+          }
+        }
+      }
+    }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { subdomain } = request.params as { subdomain: string };
+      const userId = (request as AuthenticatedRequest).user.id;
+      
+      if (!subdomain || subdomain.trim() === '') {
+        return reply.status(400).send({ error: 'Subdomínio é obrigatório' });
+      }
+
+      const company = await prisma.company.findUnique({
+        where: { subdomain: subdomain.trim() },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  name: true,
+                  fullName: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!company) {
+        return reply.status(404).send({ error: 'Empresa não encontrada' });
+      }
+
+      // Verificar se o usuário é membro da empresa
+      const membership = company.members.find(member => member.userId === userId);
+      if (!membership) {
+        return reply.status(403).send({ error: 'Acesso negado' });
+      }
+
+      return { company };
+    } catch (error) {
       return reply.status(500).send({ error: 'Erro interno', details: (error as Error).message });
     }
   });
@@ -529,7 +609,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
 
       return { company };
     } catch (error) {
-      console.error('Error getting company by subdomain:', error);
       return reply.status(500).send({ error: 'Erro interno', details: (error as Error).message });
     }
   });
@@ -542,9 +621,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
       const { id } = request.params as { id: string };
       const userId = (request as AuthenticatedRequest).user.id;
 
-      console.log('🔍 Company API: Buscando membros para company:', id);
-      console.log('🔍 Company API: Usuário autenticado:', userId);
-
       // Verificar se o usuário é membro da empresa
       const membership = await prisma.companyMember.findFirst({
         where: {
@@ -553,10 +629,7 @@ export async function companyRoutes(fastify: FastifyInstance) {
         },
       });
 
-      console.log('🔍 Company API: Membership encontrado:', !!membership);
-
       if (!membership) {
-        console.log('❌ Company API: Usuário não é membro da empresa');
         return reply.status(403).send({ error: 'Acesso negado' });
       }
 
@@ -575,12 +648,8 @@ export async function companyRoutes(fastify: FastifyInstance) {
         },
       });
 
-      console.log('🔍 Company API: Membros encontrados:', members.length);
-      console.log('🔍 Company API: Membros:', members.map(m => ({ id: m.user.id, email: m.user.email, name: m.user.name })));
-
       return { members };
     } catch (error) {
-      console.error('Error getting company members:', error);
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });
@@ -619,7 +688,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
 
       return { role: userMembership.role };
     } catch (error) {
-      console.error('Error getting user role:', error);
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });
@@ -646,7 +714,6 @@ export async function companyRoutes(fastify: FastifyInstance) {
 
       return { role: membership.role };
     } catch (error) {
-      console.error('Error getting user role:', error);
       return reply.status(500).send({ error: 'Erro interno' });
     }
   });

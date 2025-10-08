@@ -29,8 +29,8 @@ class WebSocketManager {
     this.io = new SocketIOServer(fastify.server, {
       cors: {
         origin: process.env.NODE_ENV === 'production' 
-          ? ['https://uproom.com', 'https://app.uproom.com']
-          : ['http://localhost:3000', 'http://localhost:5173'],
+          ? ['https://uproom.com']
+          : ['http://localhost:3000'],
         credentials: true
       },
       path: '/socket.io'
@@ -42,18 +42,18 @@ class WebSocketManager {
       // Autenticação do socket
       socket.on('authenticate', async (data: { token: string; companyId: string }) => {
         try {
-          console.log('🔍 WebSocket: Autenticando socket:', socket.id);
-          console.log('🔍 WebSocket: Token recebido:', data.token ? 'Presente' : 'Ausente');
-          console.log('🔍 WebSocket: Company ID:', data.companyId);
+          console.log('WebSocket: Autenticando socket:', socket.id);
+          console.log('WebSocket: Token recebido:', data.token ? 'Presente' : 'Ausente');
+          console.log('WebSocket: Company ID:', data.companyId);
           
           const decoded = AuthService.verifyToken(data.token);
           if (!decoded || !decoded.userId) {
-            console.log('❌ WebSocket: Token inválido ou expirado');
+            console.log('WebSocket: Token inválido ou expirado');
             socket.emit('auth_error', { message: 'Token inválido' });
             return;
           }
           
-          console.log('✅ WebSocket: Token válido para usuário:', decoded.userId);
+          console.log('WebSocket: Token válido para usuário:', decoded.userId);
 
           // Verificar se o usuário pertence à empresa
           const membership = await prisma.companyMember.findFirst({
@@ -109,8 +109,8 @@ class WebSocketManager {
           this.broadcastUserStatus(decoded.userId, data.companyId, 'online');
 
         } catch (error) {
-          console.error('❌ WebSocket: Erro na autenticação:', error);
-          console.error('❌ WebSocket: Data recebida:', data);
+          console.error('WebSocket: Erro na autenticação:', error);
+          console.error('WebSocket: Data recebida:', data);
           socket.emit('auth_error', { message: 'Erro na autenticação', error: error instanceof Error ? error.message : 'Erro desconhecido' });
         }
       });
@@ -221,7 +221,7 @@ class WebSocketManager {
   notifyPresenceUpdate(userId: string, companyId: string, presence: any) {
     if (!this.io) return;
 
-    console.log('📢 Broadcasting presence update:', { userId, companyId, status: presence.status });
+    console.log('Broadcasting presence update:', { userId, companyId, status: presence.status });
     
     this.io.to(`company:${companyId}`).emit('presence_updated', {
       userId,

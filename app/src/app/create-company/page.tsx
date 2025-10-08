@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
 import { useAuth as useAuthHook } from '@/hooks/useAuth';
 import { useCompany } from '@/contexts/CompanyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,8 +14,6 @@ import {
   X, 
   Loader2, 
   AlertTriangle, 
-  Plus,
-  ArrowRight
 } from 'lucide-react';
 import Navbar from '@/components/main/Navbar';
 
@@ -40,7 +37,6 @@ const RESERVED_SUBDOMAINS = [
 
 export default function CreateCompanyPage() {
   const router = useRouter();
-  const { user } = useAuth();
   const { isAuthenticated, isLoading: authLoading } = useAuthHook();
   const { createCompany, checkSubdomainAvailability } = useCompany();
   

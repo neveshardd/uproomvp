@@ -2,7 +2,6 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { prisma } from './database'
 import { config } from './config'
-import { User } from '@prisma/client'
 
 export interface AuthUser {
   id: string
@@ -104,7 +103,6 @@ export class AuthService {
         token
       }
     } catch (error) {
-      console.error('Sign up error:', error)
       return {
         success: false,
         error: 'Failed to create user account'
@@ -153,7 +151,6 @@ export class AuthService {
         token
       }
     } catch (error) {
-      console.error('Sign in error:', error)
       return {
         success: false,
         error: 'Failed to sign in'
@@ -182,7 +179,6 @@ export class AuthService {
         avatar: user.avatar || undefined
       }
     } catch (error) {
-      console.error('Get user by token error:', error)
       return null
     }
   }
@@ -211,11 +207,8 @@ export class AuthService {
       )
 
       // TODO: Send reset email with token
-      console.log('Reset token for', email, ':', resetToken)
-
       return { success: true }
     } catch (error) {
-      console.error('Reset password error:', error)
       return {
         success: false,
         error: 'Failed to reset password'
@@ -237,7 +230,6 @@ export class AuthService {
 
       return { success: true }
     } catch (error) {
-      console.error('Update password error:', error)
       return {
         success: false,
         error: 'Failed to update password'
