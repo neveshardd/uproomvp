@@ -58,9 +58,13 @@ const WorkspacesPage = () => {
     );
   }
 
-  // Redirect to login if not authenticated
+  // Redirect to main domain login if not authenticated
   if (!user) {
-    router.push('/login');
+    const mainDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000';
+    const protocol = window.location.protocol;
+    const currentPath = window.location.pathname;
+    const returnUrl = encodeURIComponent(`${protocol}//${window.location.host}${currentPath}`);
+    window.location.href = `${protocol}//${mainDomain}/login?returnUrl=${returnUrl}`;
     return null;
   }
 

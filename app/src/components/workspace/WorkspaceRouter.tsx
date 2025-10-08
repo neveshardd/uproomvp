@@ -99,10 +99,10 @@ export default function WorkspaceRouter({ children }: WorkspaceRouterProps) {
 
 const WorkspaceLoginRedirect: React.FC<{ company: any }> = ({ company }) => {
   React.useEffect(() => {
-    console.log('🔍 WorkspaceLoginRedirect: Usuário não autenticado, redirecionando para login da workspace')
-    const protocol = window.location.protocol
-    const currentHost = window.location.host
-    window.location.href = `${protocol}//${currentHost}/login`
+    console.log('🔍 WorkspaceLoginRedirect: Usuário não autenticado, redirecionando para domínio principal')
+    const mainDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000';
+    const protocol = window.location.protocol;
+    window.location.href = `${protocol}//${mainDomain}`;
   }, [])
 
   return (
@@ -111,7 +111,7 @@ const WorkspaceLoginRedirect: React.FC<{ company: any }> = ({ company }) => {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-            <p className="text-sm text-gray-600">Redirecting to workspace login...</p>
+            <p className="text-sm text-gray-600">Redirecting to main domain for authentication...</p>
           </div>
         </CardContent>
       </Card>

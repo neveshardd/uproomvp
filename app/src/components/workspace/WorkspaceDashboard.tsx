@@ -329,7 +329,8 @@ export default function WorkspaceDashboard({ company }: { company: any }) {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
+      // O signOut já faz o redirecionamento para o domínio principal
+      // Não precisamos fazer router.push('/') aqui
     } catch (error) {
       console.error('Error signing out:', error);
       toast({

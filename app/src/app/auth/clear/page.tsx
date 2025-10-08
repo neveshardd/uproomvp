@@ -10,7 +10,7 @@ export default function AuthClearPage() {
     
     // Redirect to main domain after clearing
     const protocol = window.location.protocol;
-    const mainDomain = process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'localhost:3000';
+    const mainDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000';
     window.location.href = `${protocol}//${mainDomain}`;
   }, []);
 

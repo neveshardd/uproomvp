@@ -334,8 +334,10 @@ const WorkspacePage = () => {
           setIsLoading(false);
         }
       } else if (!authLoading && !companyLoading && !user) {
-        // Se não há usuário autenticado, redirecionar para login
-        window.location.href = '/login';
+        // Se não há usuário autenticado, redirecionar para domínio principal
+        const mainDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000';
+        const protocol = window.location.protocol;
+        window.location.href = `${protocol}//${mainDomain}`;
       }
     };
 
@@ -366,12 +368,16 @@ const WorkspacePage = () => {
             <p className="text-muted-foreground mb-8">
               Você precisa estar logado para acessar esta workspace.
             </p>
-            <a 
-              href="/login" 
+            <button 
+              onClick={() => {
+                const mainDomain = process.env.NEXT_PUBLIC_DEV_DOMAIN || 'localhost:3000';
+                const protocol = window.location.protocol;
+                window.location.href = `${protocol}//${mainDomain}`;
+              }}
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg inline-block"
             >
               Fazer Login
-            </a>
+            </button>
           </div>
         </div>
       </WorkspaceRouter>

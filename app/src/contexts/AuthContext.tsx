@@ -101,13 +101,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         
         // No valid session found anywhere
-        if (SessionSync.isOnSubdomain()) {
-          const currentPath = window.location.pathname
-          if (!currentPath.includes('/login') && !currentPath.includes('/register') && currentPath !== '/' && currentPath !== '') {
-            SessionSync.redirectToMainForAuth()
-            return
-          }
-        }
+        // Don't auto-redirect here - let the components handle it
+        // This prevents redirect loops after logout
       } catch (error) {
         console.error('Erro ao inicializar sessão:', error)
         SessionSync.clearAllSessions()
@@ -137,7 +132,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // Store session locally and in cross-domain auth
       SessionSync.syncSession(data.session)
-      CrossDomainAuth.setAuthToken(data.session.access_token)
+      CrossDomainAuth.syncLogin(data.session.access_token)
       setUser(data.user)
       setProfile(data.user)
       setSession(data.session)
@@ -168,7 +163,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // If user was created and session exists, store session locally and cross-domain
       if (data.user && data.session) {
         SessionSync.syncSession(data.session)
-        CrossDomainAuth.setAuthToken(data.session.access_token)
+        CrossDomainAuth.syncLogin(data.session.access_token)
         setUser(data.user)
         setProfile(data.user)
         setSession(data.session)
@@ -200,10 +195,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Erro no logout:', error)
     } finally {
+      // Clear all sessions and sync logout across domains
       SessionSync.clearAllSessions()
+      CrossDomainAuth.syncLogout()
       setUser(null)
       setProfile(null)
       setSession(null)
+      
+      // If on subdomain, redirect to main domain
+      if (CrossDomainAuth.isSubdomain()) {
+        const mainDomain = CrossDomainAuth.getMainDomain()
+        const protocol = window.location.protocol
+        window.location.href = `${protocol}//${mainDomain}`
+      }
     }
   }
 

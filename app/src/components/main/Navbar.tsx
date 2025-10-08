@@ -13,6 +13,7 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { LogOut, User, Settings, Building2 } from 'lucide-react';
+import { CrossDomainAuth } from '@/lib/auth/cross-domain-auth';
 
 const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -21,15 +22,10 @@ const Navbar = () => {
   const handleSignOut = async () => {
     await signOut();
     
-    // Check if we're on a subdomain (workspace)
-    const isSubdomain = typeof window !== 'undefined' && 
-                       window.location.hostname !== 'localhost' && 
-                       window.location.hostname !== '127.0.0.1' &&
-                       window.location.hostname.includes('.');
-    
-    if (isSubdomain) {
-      router.push('/login');
-    } else {
+    // The signOut function in AuthContext already handles cross-domain logout
+    // and redirection to main domain if on subdomain
+    // If we're on main domain, just redirect to home
+    if (!CrossDomainAuth.isSubdomain()) {
       router.push('/');
     }
   };

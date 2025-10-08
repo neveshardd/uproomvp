@@ -85,13 +85,20 @@ export class CrossDomainAuth {
   static clearAuthToken() {
     localStorage.removeItem('auth_token')
     const baseDomain = this.getBaseDomainForCookie()
-    document.cookie = `${this.AUTH_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${baseDomain}; path=/;`
+    
+    // For localhost, don't set domain to allow proper cookie clearing
+    if (baseDomain.includes('localhost')) {
+      document.cookie = `${this.AUTH_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+    } else {
+      document.cookie = `${this.AUTH_COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${baseDomain}; path=/;`
+    }
   }
 
   /**
    * Sync logout across all domains
    */
   static syncLogout() {
+    console.log('🔄 Iniciando logout global...')
     
     // Clear local storage and cookies
     this.clearAuthToken()
@@ -101,6 +108,7 @@ export class CrossDomainAuth {
       const mainDomain = this.getMainDomain()
       const protocol = window.location.protocol
       
+      console.log(`🔄 Limpando sessão no domínio principal: ${mainDomain}`)
       
       // Use a hidden iframe to clear the main domain's auth
       const iframe = document.createElement('iframe')
@@ -115,7 +123,7 @@ export class CrossDomainAuth {
         }
       }, 1000)
     } else {
-      console.log('Sync logout concluído (domínio principal)')
+      console.log('✅ Logout global concluído (domínio principal)')
     }
   }
 
@@ -123,13 +131,18 @@ export class CrossDomainAuth {
    * Sync login across domains
    */
   static syncLogin(token: string) {
+    console.log('🔄 Sincronizando login entre domínios...')
+    
     // Set token in current domain
     this.setAuthToken(token)
     
     // If we're on main domain, also set for subdomains via cookie
     if (!this.isSubdomain()) {
+      console.log('✅ Token configurado para compartilhamento com subdomínios')
       // The cookie will be available to all subdomains
       this.setAuthToken(token)
+    } else {
+      console.log('✅ Token configurado no subdomínio')
     }
   }
 

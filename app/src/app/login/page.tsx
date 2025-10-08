@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useSubdomain } from '@/hooks/useSubdomain';
+import { CrossDomainAuth } from '@/lib/auth/cross-domain-auth';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -24,9 +25,19 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const { signIn } = useAuth();
   const { toast } = useToast();
   const { subdomain, company, isValidWorkspace } = useSubdomain();
+
+  // Handle returnUrl from query params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrlParam = urlParams.get('returnUrl');
+    if (returnUrlParam) {
+      setReturnUrl(returnUrlParam);
+    }
+  }, []);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -54,9 +65,33 @@ export default function LoginPage() {
           description: 'You have successfully logged in.',
         });
         
-        // Check if we're on a subdomain - if so, stay on subdomain after login
-        if (subdomain && company && isValidWorkspace) {
-          // Use a simple timeout to ensure the auth state is fully updated
+        // Handle redirect after successful login
+        if (returnUrl) {
+          // If there's a returnUrl, redirect to it (e.g., back to subdomain)
+          try {
+            const decodedUrl = decodeURIComponent(returnUrl);
+            const url = new URL(decodedUrl);
+            
+            // Validate that the return URL is from a trusted domain
+            const currentHost = window.location.hostname;
+            const returnHost = url.hostname;
+            
+            const isTrustedDomain = returnHost === currentHost || 
+                                   returnHost.endsWith('.localhost') ||
+                                   returnHost.includes('localhost');
+            
+            if (isTrustedDomain) {
+              window.location.href = decodedUrl;
+            } else {
+              console.warn('Untrusted return URL:', decodedUrl);
+              window.location.href = '/';
+            }
+          } catch (error) {
+            console.error('Invalid return URL:', returnUrl, error);
+            window.location.href = '/';
+          }
+        } else if (subdomain && company && isValidWorkspace) {
+          // If on subdomain, stay on subdomain after login
           setTimeout(() => {
             window.location.href = `${window.location.protocol}//${window.location.host}/`;
           }, 100);

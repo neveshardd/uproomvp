@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,8 +24,18 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [returnUrl, setReturnUrl] = useState<string | null>(null);
   const { signUp } = useAuth();
   const { toast } = useToast();
+
+  // Handle returnUrl from query params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrlParam = urlParams.get('returnUrl');
+    if (returnUrlParam) {
+      setReturnUrl(returnUrlParam);
+    }
+  }, []);
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -59,9 +69,43 @@ export default function RegisterPage() {
             title: 'Welcome!',
             description: result.message || 'Your account has been created successfully.',
           });
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 2000);
+          
+          // Handle redirect after successful registration
+          if (returnUrl) {
+            // If there's a returnUrl, redirect to it (e.g., back to subdomain)
+            try {
+              const decodedUrl = decodeURIComponent(returnUrl);
+              const url = new URL(decodedUrl);
+              
+              // Validate that the return URL is from a trusted domain
+              const currentHost = window.location.hostname;
+              const returnHost = url.hostname;
+              
+              const isTrustedDomain = returnHost === currentHost || 
+                                     returnHost.endsWith('.localhost') ||
+                                     returnHost.includes('localhost');
+              
+              if (isTrustedDomain) {
+                setTimeout(() => {
+                  window.location.href = decodedUrl;
+                }, 2000);
+              } else {
+                console.warn('Untrusted return URL:', decodedUrl);
+                setTimeout(() => {
+                  window.location.href = '/';
+                }, 2000);
+              }
+            } catch (error) {
+              console.error('Invalid return URL:', returnUrl, error);
+              setTimeout(() => {
+                window.location.href = '/';
+              }, 2000);
+            }
+          } else {
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          }
         }
       }
     } catch (error) {
